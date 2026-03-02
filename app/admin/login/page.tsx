@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { loginAdmin } from "@/actions/auth.actions";
 
 export default function AdminLogin() {
   const [password, setPassword] = useState("");
@@ -23,28 +24,25 @@ export default function AdminLogin() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ password }),
-      });
+      const res = await loginAdmin(password);
 
-      if (!res.ok) {
+      if (!res.success) {
         toast.error("Wrong password");
         return;
       }
 
-      document.cookie = "admin-auth=true; path=/";
       toast.success("Login successful");
 
-      router.push("/admin/products");
-    } catch {
+      // Force a hard navigation. This bypasses the Next.js client cache
+      // and guarantees your middleware receives the fresh cookie.
+      window.location.href = "/admin/products";
+    } catch (error) {
       toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
+      setLoading(false); // Make sure this is here or in a finally block!
     }
+    // Remove the `finally { setLoading(false) }` block because
+    // window.location.href will navigate away from the page anyway.
+    // Setting it to false right before a hard redirect can sometimes cause a flash.
   };
 
   return (

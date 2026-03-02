@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { CATEGORIES, STYLES, TYPES } from "@/data";
 import { Filter } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CATEGORIES, STYLES, TYPES } from "@/types/product";
 
 interface Props {
   category: string;

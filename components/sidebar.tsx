@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logoutAdmin } from "@/actions/auth.actions";
 
 export default function AdminSidebar() {
   const path = usePathname();
@@ -102,10 +103,14 @@ export function LogoutButton() {
   const router = useRouter();
 
   const logout = async () => {
-    await fetch("/api/admin/logout", { method: "POST" });
+    try {
+      await logoutAdmin();
 
-    toast.success("Logged out");
-    router.push("/admin/login");
+      toast.success("Logged out");
+      router.push("/admin/login");
+    } catch (error) {
+      toast.error("Failed to logout");
+    }
   };
 
   return (

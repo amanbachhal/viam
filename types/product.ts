@@ -1,28 +1,20 @@
-export type ProductCategory = "Earrings" | "Necklace" | "Bracelet" | "Ring";
+export const CATEGORIES = [
+  "All",
+  "Earrings",
+  "Necklace",
+  "Bracelet",
+  "Ring",
+] as const;
 
-export type ProductStyle = "Modern" | "Traditional" | "Party" | "Minimal";
+export const STYLES = [
+  "All",
+  "Modern",
+  "Traditional",
+  "Party",
+  "Minimal",
+] as const;
 
-export type ProductType = "Everyday" | "Anti Tarnish";
-
-export interface ProductVariant {
-  id: string;
-  product_id: string;
-  name?: string;
-  code: string;
-  price: number;
-  inStock: boolean;
-  images: string[];
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  category: string;
-  style: string;
-  type: string;
-  variants: ProductVariant[];
-}
+export const TYPES = ["All", "Everyday", "Anti Tarnish"] as const;
 
 export interface StoreProduct {
   id: string;
