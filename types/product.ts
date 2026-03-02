@@ -10,17 +10,41 @@ export interface ProductVariant {
   name?: string;
   code: string;
   price: number;
-  in_stock: boolean;
+  inStock: boolean;
   images: string[];
 }
 
 export interface Product {
   id: string;
   name: string;
-  code: string;
   description?: string;
-  category: ProductCategory;
-  style: ProductStyle;
-  type: ProductType;
+  category: string;
+  style: string;
+  type: string;
   variants: ProductVariant[];
+}
+
+export interface StoreProduct {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+  style: string;
+  type: string;
+
+  image: string | null;
+
+  inStock: boolean;
+
+  minPrice: number;
+  maxPrice: number;
+  priceSame: boolean;
+}
+
+export interface StoreProductsResponse {
+  data: StoreProduct[];
+  total: number;
+  page: number;
+  pages: number;
+  hasMore: boolean;
 }

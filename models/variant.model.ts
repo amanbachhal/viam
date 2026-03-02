@@ -16,5 +16,8 @@ const ProductVariantSchema = new Schema(
   { timestamps: true },
 );
 
+ProductVariantSchema.index({ product_id: 1 });
+ProductVariantSchema.index({ name: "text", code: "text" });
+
 export default models.ProductVariant ||
   mongoose.model("ProductVariant", ProductVariantSchema);

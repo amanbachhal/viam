@@ -8,16 +8,26 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
-
-const heroImages = ["/hero1.webp", "/hero2.webp", "/hero3.webp"];
+import { useSiteConfig } from "./providers/site-config-provider";
 
 export function Hero() {
+  const config = useSiteConfig();
+
+  const DEFAULT_HERO_IMAGES = ["/hero1.webp", "/hero2.webp", "/hero3.webp"];
+
+  const heroImages = [0, 1, 2].map(
+    (i) => config?.hero_images?.[i] || DEFAULT_HERO_IMAGES[i],
+  );
+
   return (
-    <section className="w-full bg-stone-400 px-6 py-16 md:py-24">
+    <section
+      className="w-full bg-stone-400 px-6 py-16 md:py-24"
+      style={{ background: config?.hero_bg || "#d6d3d1" }}
+    >
       <div className="max-w-7xl mx-auto">
         {/* ===== DESKTOP GRID (lg+) ===== */}
         <div className="hidden lg:grid grid-cols-3 gap-10">
-          {heroImages.map((src, index) => (
+          {heroImages.map((src: string, index: number) => (
             <Card
               key={index}
               className="overflow-hidden rounded-3xl shadow-xl border-0 p-0"
@@ -48,7 +58,7 @@ export function Hero() {
             className="w-full"
           >
             <CarouselContent className="-ml-4">
-              {heroImages.map((src, index) => (
+              {heroImages.map((src: string, index: number) => (
                 <CarouselItem
                   key={index}
                   className="
@@ -76,13 +86,19 @@ export function Hero() {
 
         {/* ===== HERO TEXT ===== */}
         <div className="mt-16 md:mt-24 lg:mt-28 text-center max-w-3xl mx-auto">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif tracking-wide leading-tight font-bold text-white">
-            The Art of Modern Jewelry
+          <h1
+            className="text-3xl md:text-5xl lg:text-6xl font-serif tracking-wide leading-tight font-bold text-white"
+            style={{ color: config?.hero_font_color || "#fff" }}
+          >
+            {config?.hero_title || "The Art of Modern Jewelry"}
           </h1>
 
-          <p className="mt-6 text-muted text-sm md:text-lg leading-relaxed">
-            A curated collection of refined pieces created for timeless style
-            and effortless elegance.
+          <p
+            className="mt-6 text-muted text-sm md:text-lg leading-relaxed"
+            style={{ color: config?.hero_font_color || "#fff" }}
+          >
+            {config?.hero_subtitle ||
+              "A curated collection of refined pieces created for timeless elegance."}
           </p>
         </div>
       </div>

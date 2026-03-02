@@ -39,7 +39,7 @@ export default function AdminLogin() {
       document.cookie = "admin-auth=true; path=/";
       toast.success("Login successful");
 
-      router.push("/admin");
+      router.push("/admin/products");
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -76,7 +76,7 @@ export default function AdminLogin() {
             maxLength={20}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && login()}
-            className="h-11 bg-white/5 border-white/10 text-white placeholder:text-neutral-500 focus-visible:ring-white/20"
+            className="h-11 bg-white/5 border-white/10 text-white placeholder:text-neutral-400 focus-visible:ring-white/20"
           />
 
           <Button

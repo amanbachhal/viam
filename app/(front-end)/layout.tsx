@@ -3,6 +3,9 @@ import { Inter, Cormorant_Garamond } from "next/font/google";
 import "../globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { getCachedSiteConfig } from "@/lib/site-config-cache";
+import { SiteConfigProvider } from "@/components/providers/site-config-provider";
+import { Banner } from "@/components/banner";
 
 const bodyFont = Inter({
   subsets: ["latin"],
@@ -57,19 +60,24 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://viamjewels.com"),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const config = await getCachedSiteConfig();
+
   return (
     <html lang="en">
       <body
         className={`${bodyFont.variable} ${headingFont.variable} antialiased`}
       >
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <SiteConfigProvider config={config}>
+          <Banner />
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </SiteConfigProvider>
       </body>
     </html>
   );

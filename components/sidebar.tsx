@@ -5,9 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function AdminSidebar() {
   const path = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Automatically close sidebar when navigation happens on mobile
+  useEffect(() => {
+    setIsOpen(false);
+  }, [path]);
 
   const linkStyle = (href: string) =>
     `block px-4 py-3 rounded-lg transition ${
@@ -17,32 +26,75 @@ export default function AdminSidebar() {
     }`;
 
   return (
-    <aside className="w-64 bg-stone-950 text-white flex flex-col justify-between p-6">
-      <div className="space-y-10">
-        <Image
-          src="/logo.webp"
-          alt="Logo"
-          width={170}
-          height={170}
-          className="w-[170px]"
-        />
+    <>
+      {/* Mobile Toggle Button (Floating) */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => setIsOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 bg-white text-black shadow-md"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
 
-        <nav className="space-y-2">
-          <Link href="/admin/products" className={linkStyle("/admin/products")}>
-            Products
-          </Link>
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "bg-stone-950 text-white flex-col justify-between p-6 z-50",
+          // Mobile state: Full screen overlay when open, otherwise hidden
+          isOpen ? "fixed inset-0 flex w-full h-full" : "hidden",
+          // Desktop state: Always visible, fixed width, relative positioning
+          "md:flex md:relative md:w-64 md:h-auto",
+        )}
+      >
+        <div className="space-y-10">
+          <div className="flex items-center justify-between">
+            <Image
+              src="/logo.webp"
+              alt="Logo"
+              width={170}
+              height={40}
+              className="w-[170px] h-auto object-contain unoptimized"
+            />
 
-          <Link
-            href="/admin/hero-images"
-            className={linkStyle("/admin/hero-images")}
-          >
-            Hero Images
-          </Link>
-        </nav>
-      </div>
+            {/* Mobile Close Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+              className="md:hidden text-white hover:bg-white/10"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
 
-      <LogoutButton />
-    </aside>
+          <nav className="space-y-2">
+            <Link
+              href="/admin/products"
+              className={linkStyle("/admin/products")}
+            >
+              Products
+            </Link>
+
+            <Link
+              href="/admin/variants"
+              className={linkStyle("/admin/variants")}
+            >
+              Variants
+            </Link>
+
+            <Link
+              href="/admin/site-config"
+              className={linkStyle("/admin/site-config")}
+            >
+              Website Config
+            </Link>
+          </nav>
+        </div>
+
+        <LogoutButton />
+      </aside>
+    </>
   );
 }
 
@@ -57,7 +109,7 @@ export function LogoutButton() {
   };
 
   return (
-    <Button variant="outline" className="w-full" onClick={logout}>
+    <Button variant="destructive" className="w-full" onClick={logout}>
       Logout
     </Button>
   );

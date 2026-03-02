@@ -23,10 +23,11 @@ export default function RootLayout({
       <body
         className={`${bodyFont.variable} ${headingFont.variable} antialiased`}
       >
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen relative">
           <AdminSidebar />
 
-          <main className="flex-1 bg-stone-400 p-6 overflow-auto">
+          {/* Added pt-16 on mobile to make room for the floating hamburger button */}
+          <main className="flex-1 bg-stone-400 p-4 pt-16 md:p-6 h-screen overflow-hidden">
             {children}
           </main>
         </div>

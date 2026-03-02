@@ -10,7 +10,11 @@ export function proxy(request: NextRequest) {
   }
 
   if (isAuth && pathname === "/admin/login") {
-    return NextResponse.redirect(new URL("/admin", request.url));
+    return NextResponse.redirect(new URL("/admin/products", request.url));
+  }
+
+  if (isAuth && pathname === "/admin") {
+    return NextResponse.redirect(new URL("/admin/products", request.url));
   }
 
   return NextResponse.next();

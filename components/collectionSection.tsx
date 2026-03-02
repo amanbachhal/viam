@@ -1,30 +1,71 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { products } from "@/data";
-import { filterProducts } from "@/lib/filterProducts";
-
-import { Product } from "@/types/product";
+import { useEffect, useState } from "react";
 import { ProductFilters } from "./productFilters";
 import { ProductCard } from "./productCard";
-import { ProductDrawer } from "./productDrawer";
+import { Button } from "@/components/ui/button";
+import { getStoreProducts } from "@/actions/store.actions";
+import { StoreProduct, StoreProductsResponse } from "@/types/product";
 
-export function CollectionSection() {
+interface Props {
+  initialProducts: StoreProductsResponse;
+}
+
+export function CollectionSection({ initialProducts }: Props) {
+  const [products, setProducts] = useState<StoreProduct[]>(
+    initialProducts.data,
+  );
+  const [page, setPage] = useState(initialProducts.page);
+  const [hasMore, setHasMore] = useState(initialProducts.hasMore);
+  const [loading, setLoading] = useState(false);
+
   const [category, setCategory] = useState("All");
   const [style, setStyle] = useState("All");
   const [type, setType] = useState("All");
   const [search, setSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const filtered = useMemo(
-    () => filterProducts(products, category, style, type, search),
-    [category, style, type, search],
-  );
+  // ===== DEBOUNCED SEARCH / FILTER =====
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProducts(true);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search, category, style, type]);
+
+  async function fetchProducts(reset = false) {
+    setLoading(true);
+
+    const nextPage = reset ? 1 : page + 1;
+
+    const res = await getStoreProducts({
+      page: nextPage,
+      search,
+      category,
+      style,
+      type,
+    });
+
+    if (!res?.success) {
+      setLoading(false);
+      return;
+    }
+
+    if (reset) {
+      setProducts(res.data);
+      setPage(1);
+    } else {
+      setProducts((prev) => [...prev, ...res.data]);
+      setPage(nextPage);
+    }
+
+    setHasMore(res.hasMore);
+    setLoading(false);
+  }
 
   return (
-    <section id="collection" className="w-full px-6 py-20 scroll-mt-24">
+    <section className="w-full px-6 py-20">
       <div className="max-w-7xl mx-auto">
-        {/* Filters */}
         <ProductFilters
           category={category}
           style={style}
@@ -36,24 +77,31 @@ export function CollectionSection() {
           onSearchChange={setSearch}
         />
 
-        {/* Grid */}
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        {products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div className="flex justify-center mt-12">
+                <Button
+                  onClick={() => fetchProducts()}
+                  disabled={loading}
+                  className="px-10"
+                >
+                  {loading ? "Loading..." : "Load More"}
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="py-20 text-center text-muted-foreground">
-            No designs found matching your criteria.
+            No designs found.
           </div>
         )}
-
-        <ProductDrawer
-          product={selectedProduct}
-          open={!!selectedProduct}
-          onOpenChange={() => setSelectedProduct(null)}
-        />
       </div>
     </section>
   );

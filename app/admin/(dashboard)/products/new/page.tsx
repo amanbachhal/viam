@@ -1,18 +1,11 @@
-import ProductForm from "@/components/admin-products/ProductForm";
+import ProductForm from "@/components/admin/product-form";
+
+export const dynamic = "force-dynamic";
 
 export default function NewProductPage() {
   return (
-    <div className="min-h-screen bg-stone-400 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-stone-900">Add New Product</h1>
-          <p className="text-stone-700 text-sm">
-            Create product and manage its variants.
-          </p>
-        </div>
-
-        <ProductForm />
-      </div>
+    <div className="flex flex-col h-full max-h-[calc(100vh-120px)] bg-white p-6 rounded-xl border border-black/10">
+      <ProductForm />
     </div>
   );
 }
