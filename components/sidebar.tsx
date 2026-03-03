@@ -84,6 +84,10 @@ export default function AdminSidebar() {
               Variants
             </Link>
 
+            <Link href="/admin/master" className={linkStyle("/admin/master")}>
+              Master
+            </Link>
+
             <Link
               href="/admin/site-config"
               className={linkStyle("/admin/site-config")}

@@ -9,9 +9,15 @@ import { StoreProduct, StoreProductsResponse } from "@/types/product";
 
 interface Props {
   initialProducts: StoreProductsResponse;
+  filterOptions: {
+    // Add this prop
+    categories: any[];
+    styles: any[];
+    types: any[];
+  };
 }
 
-export function CollectionSection({ initialProducts }: Props) {
+export function CollectionSection({ initialProducts, filterOptions }: Props) {
   const [products, setProducts] = useState<StoreProduct[]>(
     initialProducts.data,
   );
@@ -19,23 +25,21 @@ export function CollectionSection({ initialProducts }: Props) {
   const [hasMore, setHasMore] = useState(initialProducts.hasMore);
   const [loading, setLoading] = useState(false);
 
+  // These will now hold ObjectIds (strings) instead of display names
   const [category, setCategory] = useState("All");
   const [style, setStyle] = useState("All");
   const [type, setType] = useState("All");
   const [search, setSearch] = useState("");
 
-  // ===== DEBOUNCED SEARCH / FILTER =====
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchProducts(true);
     }, 400);
-
     return () => clearTimeout(timer);
   }, [search, category, style, type]);
 
   async function fetchProducts(reset = false) {
     setLoading(true);
-
     const nextPage = reset ? 1 : page + 1;
 
     const res = await getStoreProducts({
@@ -71,6 +75,7 @@ export function CollectionSection({ initialProducts }: Props) {
           style={style}
           type={type}
           search={search}
+          filterOptions={filterOptions}
           onCategoryChange={setCategory}
           onStyleChange={setStyle}
           onTypeChange={setType}
@@ -90,7 +95,7 @@ export function CollectionSection({ initialProducts }: Props) {
                 <Button
                   onClick={() => fetchProducts()}
                   disabled={loading}
-                  className="px-10"
+                  className="px-10 rounded-full bg-black text-white hover:bg-[#E3BB76] hover:text-black transition-colors"
                 >
                   {loading ? "Loading..." : "Load More"}
                 </Button>
@@ -98,8 +103,8 @@ export function CollectionSection({ initialProducts }: Props) {
             )}
           </>
         ) : (
-          <div className="py-20 text-center text-muted-foreground">
-            No designs found.
+          <div className="py-20 text-center text-muted-foreground font-serif text-xl">
+            No designs found matching your criteria.
           </div>
         )}
       </div>

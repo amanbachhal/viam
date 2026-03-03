@@ -42,12 +42,23 @@ export const metadata: Metadata = {
     "rings",
   ],
 
+  metadataBase: new URL("https://viamjewels.com"),
+
   openGraph: {
     title: "Viam Jewels — Elegant Anti-Tarnish & Designer Jewelry",
     description:
       "Premium anti-tarnish and designer jewelry crafted for timeless elegance.",
+    url: "https://viamjewels.com",
     siteName: "Viam Jewels",
     type: "website",
+    images: [
+      {
+        url: "/logo.webp",
+        width: 1200,
+        height: 630,
+        alt: "Viam Jewels - Premium Anti Tarnish Jewelry",
+      },
+    ],
   },
 
   twitter: {
@@ -55,9 +66,8 @@ export const metadata: Metadata = {
     title: "Viam Jewels — Elegant Anti-Tarnish & Designer Jewelry",
     description:
       "Premium anti-tarnish and designer jewelry crafted for timeless elegance.",
+    images: ["/logo.webp"],
   },
-
-  metadataBase: new URL("https://viamjewels.com"),
 };
 
 export default async function RootLayout({

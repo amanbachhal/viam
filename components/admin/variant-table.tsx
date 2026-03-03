@@ -13,7 +13,14 @@ import {
   ChevronRight,
   RotateCcw,
   EyeIcon,
+  Plus,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 import {
   Table,
@@ -41,6 +48,7 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
 import {
   Combobox,
   ComboboxContent,
@@ -48,7 +56,6 @@ import {
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-  useComboboxAnchor,
 } from "@/components/ui/combobox";
 
 import { Input } from "@/components/ui/input";
@@ -62,17 +69,19 @@ interface Props {
     page: number;
   };
   products: { _id: string; name: string; code: string }[];
+  filterOptions: {
+    categories: any[];
+    styles: any[];
+    types: any[];
+  };
 }
 
-export default function VariantTable({ data, products }: Props) {
+export default function VariantTable({ data, products, filterOptions }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentSearch = searchParams.get("search") || "";
   const currentProduct = searchParams.get("product") || "All";
-  const currentCategory = searchParams.get("category") || "All";
-  const currentStyle = searchParams.get("style") || "All";
-  const currentType = searchParams.get("type") || "All";
   const currentStock = searchParams.get("in_stock") || "All";
   const currentPage = Number(searchParams.get("page") || 1);
 
@@ -99,8 +108,11 @@ export default function VariantTable({ data, products }: Props) {
     const params = new URLSearchParams(searchParams.toString());
 
     Object.entries(updates).forEach(([key, value]) => {
-      if (!value || value === "All") params.delete(key);
-      else params.set(key, value);
+      if (value === null || value === undefined || value === "All") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
     });
 
     if (!("page" in updates)) {
@@ -117,11 +129,9 @@ export default function VariantTable({ data, products }: Props) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-
     try {
       const res = await deleteVariant(deleteId);
       if (!res?.success) throw new Error(res?.message);
-
       toast.success("Variant deleted successfully");
       router.refresh();
     } catch (err: any) {
@@ -156,175 +166,301 @@ export default function VariantTable({ data, products }: Props) {
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-120px)] bg-white p-6 rounded-xl border border-black/10">
-      {/* ===== HEADER ===== */}
       <h2 className="text-2xl font-semibold text-black mb-6">
         Variants Listing
       </h2>
 
       {/* ===== FILTER BAR ===== */}
-      <div className="bg-white border rounded-xl p-4 shadow-sm flex flex-wrap gap-3 items-center justify-between mb-6">
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Search */}
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-3 text-muted-foreground"
-            />
-            <Input
-              placeholder="Search name, code, price..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-8 w-[260px]"
-            />
-            {search && (
-              <X
+
+      {/* ---------- DESKTOP ---------- */}
+      <div className="hidden md:block bg-white border rounded-xl p-4 shadow-sm mb-6">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Search */}
+            <div className="relative">
+              <Search
                 size={16}
-                className="absolute right-2 top-3 cursor-pointer text-muted-foreground"
-                onClick={() => updateQuery({ search: null })}
+                className="absolute left-3 top-3 text-muted-foreground"
               />
-            )}
+              <Input
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-8 w-[200px]"
+              />
+              {search && (
+                <X
+                  size={16}
+                  className="absolute right-2 top-3 cursor-pointer text-muted-foreground"
+                  onClick={() => updateQuery({ search: null })}
+                />
+              )}
+            </div>
+
+            {/* Product Combobox */}
+            <div className="w-[220px]">
+              {(() => {
+                const labelToId = new Map(
+                  products.map((p) => [`${p.name} (${p.code})`, p._id]),
+                );
+                const idToLabel = new Map(
+                  products.map((p) => [p._id, `${p.name} (${p.code})`]),
+                );
+                const selectedLabel =
+                  currentProduct !== "All" ? idToLabel.get(currentProduct) : "";
+
+                return (
+                  <Combobox
+                    items={["All Products", ...labelToId.keys()]}
+                    value={selectedLabel || "All Products"}
+                    onValueChange={(label: string | null) => {
+                      if (!label || label === "All Products") {
+                        updateQuery({ product: null });
+                        return;
+                      }
+                      const id = labelToId.get(label);
+                      if (id) updateQuery({ product: id });
+                    }}
+                  >
+                    <ComboboxInput
+                      placeholder="Filter by product..."
+                      showTrigger
+                      showClear
+                    />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No product found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {(item) => (
+                          <ComboboxItem key={item} value={item}>
+                            {item}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                );
+              })()}
+            </div>
+
+            {/* Master Filters */}
+            {[
+              {
+                key: "category",
+                label: "Category",
+                options: filterOptions?.categories,
+              },
+              { key: "style", label: "Style", options: filterOptions?.styles },
+              { key: "type", label: "Type", options: filterOptions?.types },
+            ].map((filter) => (
+              <Select
+                key={filter.key}
+                value={searchParams.get(filter.key) || "All"}
+                onValueChange={(v) => updateQuery({ [filter.key]: v })}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder={filter.label} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All {filter.label}s</SelectItem>
+                  {filter.options?.map((opt: any) => (
+                    <SelectItem key={opt._id} value={opt._id}>
+                      {opt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
+
+            {/* Stock */}
+            <Select
+              value={currentStock}
+              onValueChange={(v) => updateQuery({ in_stock: v })}
+            >
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Stock" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Stock</SelectItem>
+                <SelectItem value="true">In Stock</SelectItem>
+                <SelectItem value="false">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="outline" size="icon" onClick={resetAll}>
+              <RotateCcw size={14} />
+            </Button>
           </div>
 
-          {/* Product Combobox Filter */}
-          <div className="w-[260px]">
-            {(() => {
-              const labelToId = new Map(
-                products.map((p) => [`${p.name} (${p.code})`, p._id]),
-              );
-
-              const idToLabel = new Map(
-                products.map((p) => [p._id, `${p.name} (${p.code})`]),
-              );
-
-              // What should display in input
-              const selectedLabel =
-                currentProduct && currentProduct !== "All"
-                  ? (idToLabel.get(currentProduct) ?? "")
-                  : "";
-
-              return (
-                <Combobox
-                  items={["All Products", ...labelToId.keys()]}
-                  value={selectedLabel || "All Products"}
-                  onValueChange={(label) => {
-                    if (!label || label === "All Products") {
-                      updateQuery({ product: null });
-                      return;
-                    }
-
-                    const id = labelToId.get(label);
-                    if (id) updateQuery({ product: id });
-                  }}
-                >
-                  <ComboboxInput
-                    placeholder="Filter by product..."
-                    showTrigger
-                    showClear
-                  />
-
-                  <ComboboxContent>
-                    <ComboboxEmpty>No product found.</ComboboxEmpty>
-
-                    <ComboboxList>
-                      {(item) => (
-                        <ComboboxItem key={item} value={item}>
-                          {item}
-                        </ComboboxItem>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              );
-            })()}
-          </div>
-
-          {/* Category */}
-          <Select
-            value={currentCategory}
-            onValueChange={(v) => updateQuery({ category: v })}
+          <Button
+            asChild
+            className="hover:bg-[#E3BB76] hover:text-black bg-black text-white"
           >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Categories</SelectItem>
-              <SelectItem value="Earrings">Earrings</SelectItem>
-              <SelectItem value="Necklace">Necklace</SelectItem>
-              <SelectItem value="Bracelet">Bracelet</SelectItem>
-              <SelectItem value="Ring">Ring</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Style */}
-          <Select
-            value={currentStyle}
-            onValueChange={(v) => updateQuery({ style: v })}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Style" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Styles</SelectItem>
-              <SelectItem value="Modern">Modern</SelectItem>
-              <SelectItem value="Traditional">Traditional</SelectItem>
-              <SelectItem value="Party">Party</SelectItem>
-              <SelectItem value="Minimal">Minimal</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Type */}
-          <Select
-            value={currentType}
-            onValueChange={(v) => updateQuery({ type: v })}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Types</SelectItem>
-              <SelectItem value="Everyday">Everyday</SelectItem>
-              <SelectItem value="Anti Tarnish">Anti Tarnish</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Stock */}
-          <Select
-            value={currentStock}
-            onValueChange={(v) => updateQuery({ in_stock: v })}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Stock" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Stock</SelectItem>
-              <SelectItem value="true">In Stock</SelectItem>
-              <SelectItem value="false">Out of Stock</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" size="icon" onClick={resetAll}>
-            <RotateCcw size={14} />
+            <Link href="/admin/variants/new">
+              <Plus size={16} className="mr-2" /> Add Variant
+            </Link>
           </Button>
         </div>
+      </div>
 
-        <Button asChild className="hover:bg-[#E3BB76] hover:text-black">
-          <Link href="/admin/variants/new">Add Variant</Link>
-        </Button>
+      {/* ---------- MOBILE (ACCORDION) ---------- */}
+      <div className="md:hidden mb-6">
+        <Accordion type="single" collapsible>
+          <AccordionItem value="filters" className="border rounded-xl">
+            <AccordionTrigger className="px-4 py-3 text-sm font-medium">
+              Search & Filters
+            </AccordionTrigger>
+
+            <AccordionContent className="px-4 pb-4 pt-2 space-y-3">
+              {/* Search */}
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-3 text-muted-foreground"
+                />
+                <Input
+                  placeholder="Search..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 pr-8 w-full"
+                />
+                {search && (
+                  <X
+                    size={16}
+                    className="absolute right-2 top-3 cursor-pointer text-muted-foreground"
+                    onClick={() => updateQuery({ search: null })}
+                  />
+                )}
+              </div>
+
+              {/* Product Combobox */}
+              <div>
+                {(() => {
+                  const labelToId = new Map(
+                    products.map((p) => [`${p.name} (${p.code})`, p._id]),
+                  );
+                  const idToLabel = new Map(
+                    products.map((p) => [p._id, `${p.name} (${p.code})`]),
+                  );
+                  const selectedLabel =
+                    currentProduct !== "All"
+                      ? idToLabel.get(currentProduct)
+                      : "";
+
+                  return (
+                    <Combobox
+                      items={["All Products", ...labelToId.keys()]}
+                      value={selectedLabel || "All Products"}
+                      onValueChange={(label: string | null) => {
+                        if (!label || label === "All Products") {
+                          updateQuery({ product: null });
+                          return;
+                        }
+                        const id = labelToId.get(label);
+                        if (id) updateQuery({ product: id });
+                      }}
+                    >
+                      <ComboboxInput
+                        placeholder="Filter by product..."
+                        showTrigger
+                        showClear
+                      />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No product found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {(item) => (
+                            <ComboboxItem key={item} value={item}>
+                              {item}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  );
+                })()}
+              </div>
+
+              {/* Master Filters */}
+              {[
+                {
+                  key: "category",
+                  label: "Category",
+                  options: filterOptions?.categories,
+                },
+                {
+                  key: "style",
+                  label: "Style",
+                  options: filterOptions?.styles,
+                },
+                { key: "type", label: "Type", options: filterOptions?.types },
+              ].map((filter) => (
+                <Select
+                  key={filter.key}
+                  value={searchParams.get(filter.key) || "All"}
+                  onValueChange={(v) => updateQuery({ [filter.key]: v })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={filter.label} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All {filter.label}s</SelectItem>
+                    {filter.options?.map((opt: any) => (
+                      <SelectItem key={opt._id} value={opt._id}>
+                        {opt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+
+              {/* Stock */}
+              <Select
+                value={currentStock}
+                onValueChange={(v) => updateQuery({ in_stock: v })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Stock" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Stock</SelectItem>
+                  <SelectItem value="true">In Stock</SelectItem>
+                  <SelectItem value="false">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center justify-between pt-2">
+                <Button variant="outline" onClick={resetAll}>
+                  Reset
+                </Button>
+
+                <Button
+                  asChild
+                  className="hover:bg-[#E3BB76] hover:text-black bg-black text-white"
+                >
+                  <Link href="/admin/variants/new">
+                    <Plus size={16} className="mr-2" /> Add
+                  </Link>
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
 
       {/* ===== TABLE AREA ===== */}
       <div className="flex-1 border rounded-xl overflow-hidden bg-white flex flex-col">
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 relative">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-white">
+            <TableHeader className="sticky top-0 z-20 bg-white border-b shadow-sm">
               <TableRow className="hover:bg-transparent">
-                <TableHead>Name</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead className="text-right"></TableHead>
+                <TableHead className="font-semibold">Name</TableHead>
+                <TableHead className="font-semibold">Code</TableHead>
+                <TableHead className="font-semibold">Product</TableHead>
+                <TableHead className="font-semibold">Category</TableHead>
+                <TableHead className="font-semibold">Style</TableHead>
+                <TableHead className="font-semibold">Type</TableHead>
+                <TableHead className="font-semibold">Price</TableHead>
+                <TableHead className="font-semibold">Stock</TableHead>
+                <TableHead className="text-right font-semibold"></TableHead>
               </TableRow>
             </TableHeader>
 
@@ -341,32 +477,66 @@ export default function VariantTable({ data, products }: Props) {
               ) : (
                 data.variants.map((v: any) => (
                   <TableRow key={v._id}>
-                    <TableCell>{v.name}</TableCell>
+                    <TableCell className="font-medium">{v.name}</TableCell>
                     <TableCell>{v.code}</TableCell>
-                    <TableCell>
-                      {v.product.name} ({v.product.code})
+                    <TableCell className="text-xs">
+                      <div className="font-semibold text-black">
+                        {v.product?.name}
+                      </div>
+                      <div className="text-muted-foreground">
+                        {v.product?.code}
+                      </div>
                     </TableCell>
-                    <TableCell>{v.product.category}</TableCell>
-                    <TableCell>₹ {v.price}</TableCell>
+                    <TableCell>
+                      {v.product?.categoryName ||
+                        (typeof v.product?.category === "string"
+                          ? v.product?.category
+                          : "—")}
+                    </TableCell>
+
+                    {/* STYLE - UPDATED */}
+                    <TableCell>
+                      {v.product?.styleName ||
+                        (typeof v.product?.style === "string"
+                          ? v.product?.style
+                          : "—")}
+                    </TableCell>
+
+                    {/* TYPE - UPDATED */}
+                    <TableCell>
+                      {v.product?.typeName ||
+                        (typeof v.product?.type === "string"
+                          ? v.product?.type
+                          : "—")}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      ₹{v.price.toLocaleString()}
+                    </TableCell>
                     <TableCell>
                       {v.in_stock ? (
-                        <span className="text-green-600 font-medium">
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">
                           In Stock
                         </span>
                       ) : (
-                        <span className="text-red-500 font-medium">Out</span>
+                        <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">
+                          Out
+                        </span>
                       )}
                     </TableCell>
-                    <TableCell className="flex gap-2 justify-end">
+                    <TableCell className="flex gap-2 justify-end items-center">
                       <Link href={`/admin/variants/${v._id}`}>
-                        <Button size="icon" variant="outline">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8"
+                        >
                           <EyeIcon size={14} />
                         </Button>
                       </Link>
-
                       <Button
                         size="icon"
                         variant="destructive"
+                        className="h-8 w-8"
                         onClick={() => setDeleteId(v._id)}
                       >
                         <Trash2 size={14} />
@@ -386,19 +556,18 @@ export default function VariantTable({ data, products }: Props) {
           {data.total > 0 && (
             <>
               Showing{" "}
-              <span className="font-medium text-black">
+              <span className="font-bold text-black">
                 {(currentPage - 1) * 20 + 1}
               </span>{" "}
               to{" "}
-              <span className="font-medium text-black">
+              <span className="font-bold text-black">
                 {Math.min(currentPage * 20, data.total)}
               </span>{" "}
-              of <span className="font-medium text-black">{data.total}</span>{" "}
+              of <span className="font-bold text-black">{data.total}</span>{" "}
               variants
             </>
           )}
         </div>
-
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
             <Button
@@ -409,9 +578,7 @@ export default function VariantTable({ data, products }: Props) {
             >
               <ChevronLeft size={16} />
             </Button>
-
             {renderPaginationNumbers()}
-
             <Button
               size="icon"
               variant="outline"
@@ -432,10 +599,11 @@ export default function VariantTable({ data, products }: Props) {
               Are you sure you want to delete this variant?
             </AlertDialogTitle>
           </AlertDialogHeader>
-
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600">
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

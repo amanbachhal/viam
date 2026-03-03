@@ -1,21 +1,3 @@
-export const CATEGORIES = [
-  "All",
-  "Earrings",
-  "Necklace",
-  "Bracelet",
-  "Ring",
-] as const;
-
-export const STYLES = [
-  "All",
-  "Modern",
-  "Traditional",
-  "Party",
-  "Minimal",
-] as const;
-
-export const TYPES = ["All", "Everyday", "Anti Tarnish"] as const;
-
 export interface StoreProduct {
   id: string;
   name: string;

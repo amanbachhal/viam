@@ -1,5 +1,6 @@
 import { getVariants } from "@/actions/variant.actions";
 import { getProductsForDropdown } from "@/actions/product.actions";
+import { getFilterOptions } from "@/actions/master.actions";
 import VariantTable from "@/components/admin/variant-table";
 
 export default async function Page({
@@ -17,7 +18,7 @@ export default async function Page({
 }) {
   const params = await searchParams;
 
-  const [variantsRes, productsRes] = await Promise.all([
+  const [variantsRes, productsRes, filterRes] = await Promise.all([
     getVariants({
       search: params?.search,
       page: Number(params?.page || 1),
@@ -28,17 +29,14 @@ export default async function Page({
       in_stock: params?.in_stock,
     }),
     getProductsForDropdown(),
+    getFilterOptions(),
   ]);
 
   return (
     <VariantTable
-      data={{
-        variants: variantsRes.data,
-        total: variantsRes.total,
-        pages: variantsRes.pages,
-        page: variantsRes.page,
-      }}
+      data={variantsRes.data}
       products={productsRes.data}
+      filterOptions={filterRes.data}
     />
   );
 }

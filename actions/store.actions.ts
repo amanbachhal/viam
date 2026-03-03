@@ -2,9 +2,15 @@
 
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/product.model";
+import Master from "@/models/master.model";
 import { serialize } from "@/lib/serialize";
 import mongoose from "mongoose";
 
+/**
+ * GET STORE PRODUCTS
+ * Handles complex filtering, searching across products/variants,
+ * and dynamic name resolution for Category/Style/Type.
+ */
 export async function getStoreProducts({
   search = "",
   page = 1,
@@ -23,22 +29,29 @@ export async function getStoreProducts({
   await connectDB();
 
   const skip = (page - 1) * limit;
-
   const productMatch: any = {};
 
-  if (category && category !== "All") productMatch.category = category;
-  if (style && style !== "All") productMatch.style = style;
-  if (type && type !== "All") productMatch.type = type;
+  // 1. CAST STRINGS TO OBJECTIDS
+  // Aggregation $match requires strict types unlike .find()
+  if (category && category !== "All") {
+    productMatch.category = new mongoose.Types.ObjectId(category);
+  }
+  if (style && style !== "All") {
+    productMatch.style = new mongoose.Types.ObjectId(style);
+  }
+  if (type && type !== "All") {
+    productMatch.type = new mongoose.Types.ObjectId(type);
+  }
 
-  // escape regex helper
+  // Escape regex helper
   const escapeRegex = (str: string) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   const pipeline: any[] = [
-    // ===== FILTER BY PRODUCT FIELDS =====
+    // FILTER BY PRODUCT FIELDS
     { $match: productMatch },
 
-    // ===== JOIN VARIANTS =====
+    // JOIN VARIANTS
     {
       $lookup: {
         from: "productvariants",
@@ -48,14 +61,14 @@ export async function getStoreProducts({
       },
     },
 
-    // ===== PRODUCT MUST HAVE AT LEAST ONE VARIANT =====
+    // PRODUCT MUST HAVE AT LEAST ONE VARIANT
     {
       $match: {
         "variants.0": { $exists: true },
       },
     },
 
-    // ===== SEARCH (PRODUCT + VARIANT) =====
+    // SEARCH (PRODUCT + VARIANT)
     ...(search
       ? (() => {
           const escaped = escapeRegex(search.trim());
@@ -66,12 +79,9 @@ export async function getStoreProducts({
             {
               $match: {
                 $or: [
-                  // PRODUCT SEARCH
                   { name: regex },
                   { code: regex },
                   { description: regex },
-
-                  // VARIANT SEARCH (array-safe)
                   {
                     variants: {
                       $elemMatch: {
@@ -90,7 +100,7 @@ export async function getStoreProducts({
         })()
       : []),
 
-    // ===== STOCK + IN STOCK VARIANTS =====
+    // STOCK + IN STOCK VARIANTS LOGIC
     {
       $addFields: {
         inStock: {
@@ -106,7 +116,7 @@ export async function getStoreProducts({
       },
     },
 
-    // ===== USE IN STOCK VARIANTS IF AVAILABLE =====
+    // USE IN STOCK VARIANTS IF AVAILABLE
     {
       $addFields: {
         usableVariants: {
@@ -119,7 +129,7 @@ export async function getStoreProducts({
       },
     },
 
-    // ===== PRICE RANGE =====
+    // PRICE RANGE
     {
       $addFields: {
         minPrice: { $min: "$usableVariants.price" },
@@ -133,7 +143,7 @@ export async function getStoreProducts({
       },
     },
 
-    // ===== SAFE IMAGE EXTRACTION =====
+    // SAFE IMAGE EXTRACTION
     {
       $addFields: {
         image: {
@@ -166,7 +176,7 @@ export async function getStoreProducts({
       },
     },
 
-    // ===== SORT =====
+    // SORT (In Stock first, then newest)
     {
       $sort: {
         inStock: -1,
@@ -175,34 +185,47 @@ export async function getStoreProducts({
     },
   ];
 
-  // ===== TOTAL COUNT =====
-  const totalRes = await Product.aggregate([...pipeline, { $count: "total" }]);
+  // FETCH DATA + MASTER CONFIG CONCURRENTLY
+  const [totalRes, productsRaw, masterDoc] = await Promise.all([
+    Product.aggregate([...pipeline, { $count: "total" }]),
+    Product.aggregate([
+      ...pipeline,
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          id: "$_id",
+          name: 1,
+          code: 1,
+          description: 1,
+          category: 1,
+          style: 1,
+          type: 1,
+          inStock: 1,
+          image: { $ifNull: ["$image", null] },
+          minPrice: 1,
+          maxPrice: 1,
+          priceSame: 1,
+        },
+      },
+    ]),
+    Master.findOne().lean(),
+  ]);
 
   const total = totalRes[0]?.total || 0;
 
-  // ===== PAGINATED DATA =====
-  const products = await Product.aggregate([
-    ...pipeline,
-    { $skip: skip },
-    { $limit: limit },
+  // 2. RESOLVE NAMES FROM MASTER IDS
+  const products = productsRaw.map((p: any) => {
+    const findName = (list: any[], id: any) =>
+      list?.find((item: any) => item._id.toString() === id?.toString())?.name;
 
-    {
-      $project: {
-        id: "$_id",
-        name: 1,
-        code: 1,
-        description: 1,
-        category: 1,
-        style: 1,
-        type: 1,
-        inStock: 1,
-        image: { $ifNull: ["$image", null] },
-        minPrice: 1,
-        maxPrice: 1,
-        priceSame: 1,
-      },
-    },
-  ]);
+    return {
+      ...p,
+      categoryName: findName(masterDoc?.categories, p.category),
+      styleName: findName(masterDoc?.styles, p.style),
+      typeName: findName(masterDoc?.types, p.type),
+    };
+  });
 
   return {
     success: true,
@@ -214,6 +237,10 @@ export async function getStoreProducts({
   };
 }
 
+/**
+ * GET PRODUCT DETAILS
+ * Fetches single product, its variants, and resolves category name for related products.
+ */
 export async function getProductDetails(id: string) {
   try {
     await connectDB();
@@ -222,31 +249,45 @@ export async function getProductDetails(id: string) {
       return { success: false, error: "Invalid product ID" };
     }
 
-    // 1. Fetch the main product and join its variants
-    const productData = await Product.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(id) } },
-      {
-        $lookup: {
-          from: "productvariants",
-          localField: "_id",
-          foreignField: "product_id",
-          as: "variants",
+    // Parallel fetch: Current Product + Master Config
+    const [productData, masterDoc] = await Promise.all([
+      Product.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(id) } },
+        {
+          $lookup: {
+            from: "productvariants",
+            localField: "_id",
+            foreignField: "product_id",
+            as: "variants",
+          },
         },
-      },
+      ]),
+      Master.findOne().lean(),
     ]);
 
     if (!productData || productData.length === 0) {
       return { success: false, error: "Product not found" };
     }
 
-    const product = productData[0];
+    const productRaw = productData[0];
 
-    // 2. Fetch related products (same category, excluding current product)
-    const relatedProducts = await Product.aggregate([
+    // Resolve names for the main product
+    const findName = (list: any[], id: any) =>
+      list?.find((item: any) => item._id.toString() === id?.toString())?.name;
+
+    const product = {
+      ...productRaw,
+      categoryName: findName(masterDoc?.categories, productRaw.category),
+      styleName: findName(masterDoc?.styles, productRaw.style),
+      typeName: findName(masterDoc?.types, productRaw.type),
+    };
+
+    // Related products logic (Same category, populated names)
+    const relatedProductsRaw = await Product.aggregate([
       {
         $match: {
-          category: product.category,
-          _id: { $ne: product._id },
+          category: productRaw.category, // Already an ObjectId in productRaw
+          _id: { $ne: productRaw._id },
         },
       },
       {
@@ -257,25 +298,20 @@ export async function getProductDetails(id: string) {
           as: "variants",
         },
       },
-      { $match: { "variants.0": { $exists: true } } }, // Must have variants
+      { $match: { "variants.0": { $exists: true } } },
       {
         $addFields: {
           inStock: { $anyElementTrue: "$variants.in_stock" },
-          inStockVariants: {
-            $filter: {
-              input: "$variants",
-              as: "v",
-              cond: { $eq: ["$$v.in_stock", true] },
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
           usableVariants: {
             $cond: [
-              { $gt: [{ $size: "$inStockVariants" }, 0] },
-              "$inStockVariants",
+              { $anyElementTrue: "$variants.in_stock" },
+              {
+                $filter: {
+                  input: "$variants",
+                  as: "v",
+                  cond: { $eq: ["$$v.in_stock", true] },
+                },
+              },
               "$variants",
             ],
           },
@@ -285,31 +321,7 @@ export async function getProductDetails(id: string) {
         $addFields: {
           minPrice: { $min: "$usableVariants.price" },
           image: {
-            $let: {
-              vars: {
-                variantWithImage: {
-                  $first: {
-                    $filter: {
-                      input: "$usableVariants",
-                      as: "v",
-                      cond: { $gt: [{ $size: "$$v.images" }, 0] },
-                    },
-                  },
-                },
-              },
-              in: {
-                $cond: [
-                  {
-                    $gt: [
-                      { $size: { $ifNull: ["$$variantWithImage.images", []] } },
-                      0,
-                    ],
-                  },
-                  { $arrayElemAt: ["$$variantWithImage.images", 0] },
-                  null,
-                ],
-              },
-            },
+            $arrayElemAt: [{ $arrayElemAt: ["$usableVariants.images", 0] }, 0],
           },
         },
       },
@@ -326,11 +338,16 @@ export async function getProductDetails(id: string) {
       },
     ]);
 
+    const related = relatedProductsRaw.map((rp: any) => ({
+      ...rp,
+      categoryName: findName(masterDoc?.categories, rp.category),
+    }));
+
     return {
       success: true,
       data: {
         product: serialize(product),
-        related: serialize(relatedProducts),
+        related: serialize(related),
       },
     };
   } catch (error) {

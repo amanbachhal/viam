@@ -1,17 +1,14 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { StoreProduct } from "@/types/product";
-
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
+import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
 
 interface Props {
-  product: StoreProduct;
+  product: any;
 }
 
 const FALLBACK_IMAGE = "/placeholder.webp";
@@ -56,17 +53,22 @@ export function ProductCard({ product }: Props) {
           {/* CONTENT */}
           <div className="flex flex-col flex-1 p-4 space-y-2">
             <div className="flex flex-col gap-1">
-              {product.type === "Anti Tarnish" && (
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] uppercase bg-[#E3BB76]/20 mb-2"
-                >
-                  Anti Tarnish
-                </Badge>
-              )}
               <p className="line-clamp-2 flex-1 text-sm!">{product.name}</p>
 
               <p className="text-sm font-semibold shrink-0">{priceText}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              <span className=" text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
+                {product.categoryName || product.category}
+              </span>
+              {/* FIX: Used Name instead of ID */}
+              <span className=" text-stone-500 text-[10px] font-bold uppercase tracking-widest underline ">
+                {product.styleName || product.style}
+              </span>
+              <span className=" text-stone-500 text-[10px] font-bold uppercase tracking-widest underline ">
+                {product.typeName || product.type}
+              </span>
             </div>
 
             <div className="mt-auto pt-3">

@@ -7,6 +7,7 @@ import { uploadImage } from "@/lib/blob";
 import { deleteImages } from "@/lib/image-cleanup";
 import { Types } from "mongoose";
 import { serialize } from "@/lib/serialize";
+import Master from "@/models/master.model";
 
 // ================= CREATE VARIANT =================
 export async function createVariant(formData: FormData) {
@@ -195,7 +196,6 @@ export async function getVariantById(id: string) {
   }
 }
 
-// ================= GET VARIANTS =================
 export async function getVariants({
   search = "",
   page = 1,
@@ -205,41 +205,24 @@ export async function getVariants({
   style,
   type,
   in_stock,
-}: {
-  search?: string;
-  page?: number;
-  limit?: number;
-  product?: string;
-  category?: string;
-  style?: string;
-  type?: string;
-  in_stock?: string;
-}) {
+}: any) {
   try {
     await connectDB();
-
     const skip = (page - 1) * limit;
-
     const match: any = {};
 
-    // ===== SEARCH =====
     if (search) {
       match.$or = [
         { name: { $regex: search, $options: "i" } },
         { code: { $regex: search, $options: "i" } },
-        { price: isNaN(Number(search)) ? undefined : Number(search) },
       ].filter(Boolean);
     }
 
-    // ===== STOCK FILTER =====
     if (in_stock === "true") match.in_stock = true;
     if (in_stock === "false") match.in_stock = false;
 
-    // ===== AGGREGATION =====
     const pipeline: any[] = [
       { $match: match },
-
-      // join product
       {
         $lookup: {
           from: "products",
@@ -248,81 +231,62 @@ export async function getVariants({
           as: "product",
         },
       },
-
       { $unwind: "$product" },
     ];
 
-    // ===== PRODUCT FILTER =====
+    // Cast IDs for filtering
     if (product && product !== "All") {
-      pipeline.push({
-        $match: { "product._id": new Types.ObjectId(product) },
-      });
+      pipeline.push({ $match: { "product._id": new Types.ObjectId(product) } });
     }
-
-    // ===== PRODUCT CATEGORY =====
     if (category && category !== "All") {
       pipeline.push({
-        $match: { "product.category": category },
+        $match: { "product.category": new Types.ObjectId(category) },
       });
     }
-
-    // ===== PRODUCT STYLE =====
     if (style && style !== "All") {
-      pipeline.push({
-        $match: { "product.style": style },
-      });
+      pipeline.push({ $match: { "product.style": new Types.ObjectId(style) } });
     }
-
-    // ===== PRODUCT TYPE =====
     if (type && type !== "All") {
-      pipeline.push({
-        $match: { "product.type": type },
-      });
+      pipeline.push({ $match: { "product.type": new Types.ObjectId(type) } });
     }
 
-    // ===== COUNT =====
-    const totalResult = await ProductVariant.aggregate([
-      ...pipeline,
-      { $count: "total" },
+    const [totalResult, variantsRaw, masterDoc] = await Promise.all([
+      ProductVariant.aggregate([...pipeline, { $count: "total" }]),
+      ProductVariant.aggregate([
+        ...pipeline,
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ]),
+      Master.findOne().lean(),
     ]);
 
     const total = totalResult[0]?.total || 0;
 
-    // ===== DATA =====
-    const variants = await ProductVariant.aggregate([
-      ...pipeline,
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
+    // Manual Name Mapping
+    const variants = variantsRaw.map((v: any) => {
+      const findName = (list: any[], id: any) =>
+        list?.find((item: any) => item._id.toString() === id?.toString())?.name;
 
-      // cleaner response
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          code: 1,
-          price: 1,
-          in_stock: 1,
-          images: 1,
-          createdAt: 1,
-          product: {
-            _id: "$product._id",
-            name: "$product.name",
-            code: "$product.code",
-            category: "$product.category",
-            style: "$product.style",
-            type: "$product.type",
-          },
+      return {
+        ...v,
+        product: {
+          ...v.product,
+          categoryName: findName(masterDoc?.categories, v.product.category),
+          styleName: findName(masterDoc?.styles, v.product.style),
+          typeName: findName(masterDoc?.types, v.product.type),
         },
-      },
-    ]);
+      };
+    });
 
     return {
       success: true,
-      data: serialize(variants),
-      total,
-      pages: Math.ceil(total / limit),
-      page,
+      data: serialize({
+        variants,
+        total,
+        pages: Math.ceil(total / limit),
+        page,
+      }),
     };
   } catch (error: any) {
     throw new Error(error?.message || "Failed to fetch variants");

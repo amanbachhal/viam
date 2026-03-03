@@ -6,11 +6,16 @@ import { deleteProduct } from "@/actions/product.actions";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import {
   X,
   Search,
   Plus,
   Trash2,
-  Pencil,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -47,14 +52,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function ProductTable({ data }: any) {
+export default function ProductTable({ data, filterOptions }: any) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentSearch = searchParams.get("search") || "";
-  const currentCategory = searchParams.get("category") || "All";
-  const currentStyle = searchParams.get("style") || "All";
-  const currentType = searchParams.get("type") || "All";
   const currentPage = Number(searchParams.get("page") || 1);
 
   const [search, setSearch] = useState(currentSearch);
@@ -89,17 +91,11 @@ export default function ProductTable({ data }: any) {
       }
     });
 
-    // Reset page ONLY if page is NOT explicitly being updated
     if (!("page" in updates)) {
       params.set("page", "1");
     }
 
     router.push(`/admin/products?${params.toString()}`);
-  };
-
-  const clearSearch = () => {
-    setSearch("");
-    updateQuery({ search: null });
   };
 
   const resetAll = () => {
@@ -109,11 +105,9 @@ export default function ProductTable({ data }: any) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-
     try {
       const res = await deleteProduct(deleteId);
       if (!res?.success) throw new Error(res?.message);
-
       toast.success("Product deleted successfully");
       router.refresh();
     } catch (err: any) {
@@ -127,7 +121,6 @@ export default function ProductTable({ data }: any) {
 
   const renderPaginationNumbers = () => {
     const pages = [];
-
     const start = Math.max(1, currentPage - 2);
     const end = Math.min(totalPages, currentPage + 2);
 
@@ -144,102 +137,177 @@ export default function ProductTable({ data }: any) {
         </Button>,
       );
     }
-
     return pages;
   };
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-120px)] bg-white p-6 rounded-xl border border-black/10">
-      {/* ===== HEADER ===== */}
       <h2 className="text-2xl font-semibold text-black mb-6">
         Products Listing
       </h2>
 
-      {/* ===== FILTER BAR ===== */}
-      <div className="bg-white border rounded-xl p-4 shadow-sm flex flex-wrap gap-3 items-center justify-between mb-6">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-3 text-muted-foreground"
-            />
-            <Input
-              placeholder="Search name or code..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-8 w-[260px]"
-            />
-            {search && (
-              <X
+      {/* ---------- DESKTOP ---------- */}
+      <div className="hidden md:block bg-white border rounded-xl p-4 shadow-sm mb-6">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* SEARCH */}
+            <div className="relative">
+              <Search
                 size={16}
-                className="absolute right-2 top-3 cursor-pointer text-muted-foreground"
-                onClick={clearSearch}
+                className="absolute left-3 top-3 text-muted-foreground"
               />
-            )}
+              <Input
+                placeholder="Search name or code..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-8 w-[240px]"
+              />
+              {search && (
+                <X
+                  size={16}
+                  className="absolute right-2 top-3 cursor-pointer text-muted-foreground"
+                  onClick={() => {
+                    setSearch("");
+                    updateQuery({ search: null });
+                  }}
+                />
+              )}
+            </div>
+
+            {/* SELECTS */}
+            {[
+              {
+                key: "category",
+                label: "Category",
+                options: filterOptions?.categories,
+              },
+              { key: "style", label: "Style", options: filterOptions?.styles },
+              { key: "type", label: "Type", options: filterOptions?.types },
+            ].map((filter) => (
+              <Select
+                key={filter.key}
+                value={searchParams.get(filter.key) || "All"}
+                onValueChange={(v) => updateQuery({ [filter.key]: v })}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder={filter.label} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All {filter.label}s</SelectItem>
+                  {filter.options?.map((opt: any) => (
+                    <SelectItem key={opt._id} value={opt._id}>
+                      {opt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ))}
+
+            <Button variant="outline" size="icon" onClick={resetAll}>
+              <RotateCcw size={14} />
+            </Button>
           </div>
 
-          <Select
-            value={currentCategory}
-            onValueChange={(v) => updateQuery({ category: v })}
+          <Button
+            asChild
+            className="hover:bg-[#E3BB76] hover:text-black bg-black text-white"
           >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Categories</SelectItem>
-              <SelectItem value="Earrings">Earrings</SelectItem>
-              <SelectItem value="Necklace">Necklace</SelectItem>
-              <SelectItem value="Bracelet">Bracelet</SelectItem>
-              <SelectItem value="Ring">Ring</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={currentStyle}
-            onValueChange={(v) => updateQuery({ style: v })}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Style" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Styles</SelectItem>
-              <SelectItem value="Modern">Modern</SelectItem>
-              <SelectItem value="Traditional">Traditional</SelectItem>
-              <SelectItem value="Party">Party</SelectItem>
-              <SelectItem value="Minimal">Minimal</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={currentType}
-            onValueChange={(v) => updateQuery({ type: v })}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All Types</SelectItem>
-              <SelectItem value="Everyday">Everyday</SelectItem>
-              <SelectItem value="Anti Tarnish">Anti Tarnish</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" size="icon" onClick={resetAll}>
-            <RotateCcw size={14} />
+            <Link href="/admin/products/new">
+              <Plus size={16} className="mr-2" /> Add Product
+            </Link>
           </Button>
         </div>
-
-        <Button asChild className="hover:bg-[#E3BB76] hover:text-black">
-          <Link href="/admin/products/new">Add Product</Link>
-        </Button>
       </div>
 
-      {/* ===== TABLE AREA (FLEX GROW) ===== */}
+      {/* ---------- MOBILE (ACCORDION) ---------- */}
+      <div className="md:hidden mb-6">
+        <Accordion type="single" collapsible>
+          <AccordionItem value="filters" className="border rounded-xl">
+            <AccordionTrigger className="px-4 py-3 text-sm font-medium">
+              Search & Filters
+            </AccordionTrigger>
+
+            <AccordionContent className="px-4 pb-4 pt-2 space-y-3">
+              {/* SEARCH */}
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-3 text-muted-foreground"
+                />
+                <Input
+                  placeholder="Search name or code..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 pr-8 w-full"
+                />
+                {search && (
+                  <X
+                    size={16}
+                    className="absolute right-2 top-3 cursor-pointer text-muted-foreground"
+                    onClick={() => {
+                      setSearch("");
+                      updateQuery({ search: null });
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* SELECTS */}
+              {[
+                {
+                  key: "category",
+                  label: "Category",
+                  options: filterOptions?.categories,
+                },
+                {
+                  key: "style",
+                  label: "Style",
+                  options: filterOptions?.styles,
+                },
+                { key: "type", label: "Type", options: filterOptions?.types },
+              ].map((filter) => (
+                <Select
+                  key={filter.key}
+                  value={searchParams.get(filter.key) || "All"}
+                  onValueChange={(v) => updateQuery({ [filter.key]: v })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={filter.label} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All {filter.label}s</SelectItem>
+                    {filter.options?.map((opt: any) => (
+                      <SelectItem key={opt._id} value={opt._id}>
+                        {opt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+
+              <div className="flex justify-between items-center pt-2">
+                <Button variant="outline" onClick={resetAll}>
+                  Reset
+                </Button>
+
+                <Button
+                  asChild
+                  className="hover:bg-[#E3BB76] hover:text-black bg-black text-white"
+                >
+                  <Link href="/admin/products/new">
+                    <Plus size={16} className="mr-2" /> Add
+                  </Link>
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+
+      {/* ===== TABLE ===== */}
       <div className="flex-1 border rounded-xl overflow-hidden bg-white flex flex-col">
-        {/* Scroll Area */}
         <div className="flex-1 overflow-y-auto min-h-0 relative">
           <Table>
-            {/* Sticky Header */}
             <TableHeader className="sticky top-0 z-20 bg-white shadow-sm border-b">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="font-semibold">Name</TableHead>
@@ -247,12 +315,12 @@ export default function ProductTable({ data }: any) {
                 <TableHead className="font-semibold">Category</TableHead>
                 <TableHead className="font-semibold">Style</TableHead>
                 <TableHead className="font-semibold">Type</TableHead>
-                <TableHead className="font-semibold text-right"></TableHead>
+                <TableHead className="text-right"></TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {data.products.length === 0 ? (
+              {data.products?.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
@@ -264,18 +332,21 @@ export default function ProductTable({ data }: any) {
               ) : (
                 data.products.map((p: any) => (
                   <TableRow key={p._id}>
-                    <TableCell>{p.name}</TableCell>
+                    <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.code}</TableCell>
-                    <TableCell>{p.category}</TableCell>
-                    <TableCell>{p.style}</TableCell>
-                    <TableCell>{p.type}</TableCell>
+                    <TableCell>
+                      {p.category?.name || p.category || "—"}
+                    </TableCell>
+                    <TableCell>{p.style?.name || p.style || "—"}</TableCell>
+                    <TableCell>{p.type?.name || p.type || "—"}</TableCell>
+
+                    {/* RESTORED ACTION BUTTONS */}
                     <TableCell className="flex gap-2 justify-end">
                       <Link href={`/admin/products/${p._id}`}>
                         <Button size="icon" variant="outline">
                           <EyeIcon size={14} />
                         </Button>
                       </Link>
-
                       <Button
                         size="icon"
                         variant="destructive"
@@ -292,9 +363,8 @@ export default function ProductTable({ data }: any) {
         </div>
       </div>
 
-      {/* ===== FIXED PAGINATION STRIP ===== */}
+      {/* ===== PAGINATION ===== */}
       <div className="border-t pt-4 mt-4 flex items-center justify-between">
-        {/* Left - Total Records */}
         <div className="text-sm text-muted-foreground">
           {data.total > 0 && (
             <>
@@ -312,7 +382,6 @@ export default function ProductTable({ data }: any) {
           )}
         </div>
 
-        {/* Right - Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
             <Button
@@ -323,9 +392,7 @@ export default function ProductTable({ data }: any) {
             >
               <ChevronLeft size={16} />
             </Button>
-
             {renderPaginationNumbers()}
-
             <Button
               size="icon"
               variant="outline"
@@ -338,18 +405,16 @@ export default function ProductTable({ data }: any) {
         )}
       </div>
 
-      {/* ===== DELETE DIALOG ===== */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Are you sure you want to delete this product?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete Product?</AlertDialogTitle>
           </AlertDialogHeader>
-
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600">
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

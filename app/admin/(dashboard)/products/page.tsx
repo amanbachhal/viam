@@ -1,4 +1,5 @@
 import { getProducts } from "@/actions/product.actions";
+import { getFilterOptions } from "@/actions/master.actions";
 import ProductTable from "@/components/admin/product-table";
 
 export default async function Page({
@@ -14,22 +15,16 @@ export default async function Page({
 }) {
   const params = await searchParams;
 
-  const result = await getProducts({
-    search: params?.search,
-    page: Number(params?.page || 1),
-    category: params?.category,
-    style: params?.style,
-    type: params?.type,
-  });
+  const [result, filterRes] = await Promise.all([
+    getProducts({
+      search: params?.search,
+      page: Number(params?.page || 1),
+      category: params?.category,
+      style: params?.style,
+      type: params?.type,
+    }),
+    getFilterOptions(),
+  ]);
 
-  return (
-    <ProductTable
-      data={{
-        products: result.data,
-        total: result.total,
-        pages: result.pages,
-        page: result.page,
-      }}
-    />
-  );
+  return <ProductTable data={result.data} filterOptions={filterRes.data} />;
 }

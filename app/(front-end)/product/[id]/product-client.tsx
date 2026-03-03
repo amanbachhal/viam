@@ -133,17 +133,17 @@ export default function ProductClient({
           >
             <div>
               <div className="flex items-center gap-2 mb-4">
+                {/* FIX: Used Name instead of ID */}
                 <span className="px-3 py-1 border border-stone-200 text-stone-500 text-[10px] font-bold uppercase tracking-widest rounded-full">
-                  {product.category}
+                  {product.categoryName || product.category}
+                </span>
+                {/* FIX: Used Name instead of ID */}
+                <span className="px-3 py-1 border border-stone-200 text-stone-500 text-[10px] font-bold uppercase tracking-widest rounded-full">
+                  {product.styleName || product.style}
                 </span>
                 <span className="px-3 py-1 border border-stone-200 text-stone-500 text-[10px] font-bold uppercase tracking-widest rounded-full">
-                  {product.style}
+                  {product.typeName || product.type}
                 </span>
-                {product.type === "Anti Tarnish" && (
-                  <span className="px-3 py-1 border border-stone-200 text-stone-500 bg-[#E3BB76]/20 text-[10px] font-bold uppercase tracking-widest rounded-full">
-                    Anti Tarnish
-                  </span>
-                )}
               </div>
 
               <h1 className="font-serif text-4xl md:text-5xl text-stone-900 leading-tight mb-2">
@@ -154,9 +154,6 @@ export default function ProductClient({
                 <p className="text-3xl font-light text-stone-900">
                   ₹{selectedVariant?.price?.toLocaleString() || "0"}
                 </p>
-                {/* <span className="text-sm text-stone-400 font-medium uppercase tracking-wider">
-                  Including Shipping
-                </span> */}
               </div>
             </div>
 

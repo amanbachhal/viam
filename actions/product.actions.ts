@@ -5,6 +5,8 @@ import Product from "@/models/product.model";
 import ProductVariant from "@/models/variant.model";
 import { deleteImages } from "@/lib/image-cleanup";
 import { serialize } from "@/lib/serialize";
+import Master from "@/models/master.model";
+import mongoose from "mongoose";
 
 // CREATE PRODUCT
 export async function createProduct(data: any) {
@@ -107,7 +109,6 @@ export async function getProducts({
     await connectDB();
 
     const query: any = {};
-
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -115,23 +116,53 @@ export async function getProducts({
       ];
     }
 
-    if (category && category !== "All") query.category = category;
-    if (style && style !== "All") query.style = style;
-    if (type && type !== "All") query.type = type;
+    // Explicitly cast to ObjectId for the query
+    if (category && category !== "All") {
+      query.category = new mongoose.Types.ObjectId(category);
+    }
+    if (style && style !== "All") {
+      query.style = new mongoose.Types.ObjectId(style);
+    }
+    if (type && type !== "All") {
+      query.type = new mongoose.Types.ObjectId(type);
+    }
 
     const skip = (page - 1) * limit;
 
-    const [products, total] = await Promise.all([
-      Product.find(query).skip(skip).limit(limit).lean(),
+    const [productsRaw, total, masterDoc] = await Promise.all([
+      Product.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       Product.countDocuments(query),
+      Master.findOne().lean(),
     ]);
+
+    // Manual mapping logic (keep your existing mapping logic here)
+    const products = productsRaw.map((p: any) => {
+      const findName = (list: any[], id: any) =>
+        list?.find((item: any) => item._id.toString() === id?.toString())?.name;
+
+      return {
+        ...p,
+        category: {
+          _id: p.category,
+          name: findName(masterDoc?.categories, p.category),
+        },
+        style: { _id: p.style, name: findName(masterDoc?.styles, p.style) },
+        type: { _id: p.type, name: findName(masterDoc?.types, p.type) },
+      };
+    });
 
     return {
       success: true,
-      data: serialize(products),
-      total,
-      pages: Math.ceil(total / limit),
-      page,
+      data: serialize({
+        products,
+        total,
+        pages: Math.ceil(total / limit),
+        page,
+      }),
     };
   } catch (error: any) {
     throw new Error(error?.message || "Failed to fetch products");

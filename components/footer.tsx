@@ -1,8 +1,8 @@
 "use client";
 
+import { Instagram, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { Instagram, Mail, MapPin } from "lucide-react";
 import { useSiteConfig } from "./providers/site-config-provider";
 
 export function Footer() {
@@ -39,7 +39,7 @@ export function Footer() {
           </div>
 
           {/* ----- Right: Connect ----- */}
-          <div className="flex flex-col items-center md:items-end space-y-6 text-center md:text-right">
+          <div className="flex flex-col items-center md:items-end space-y-6 text-center md:text-right mt-auto">
             <h3 className="font-medium  uppercase ">Connect</h3>
 
             <div className="flex flex-col items-center md:items-end space-y-4 text-sm font-light">
@@ -52,14 +52,6 @@ export function Footer() {
               >
                 <Instagram size={16} strokeWidth={1.5} />
                 <span className="tracking-wide">@viamjewels</span>
-              </a>
-
-              <a
-                href="mailto:hello@viamjewels.com"
-                className="flex items-center gap-3 hover:underline"
-              >
-                <Mail size={16} strokeWidth={1.5} />
-                <span className="tracking-wide">hello@viamjewels.com</span>
               </a>
 
               <div className="flex items-center gap-3">

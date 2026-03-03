@@ -30,16 +30,32 @@ import { z } from "zod";
 
 type FormType = z.infer<typeof productSchema>;
 
-interface Props {
-  product?: any;
+// Define types for your Master options
+interface MasterItem {
+  _id: string;
+  name: string;
 }
 
-export default function ProductForm({ product }: Props) {
+interface MasterOptions {
+  categories: MasterItem[];
+  styles: MasterItem[];
+  types: MasterItem[];
+}
+
+interface Props {
+  product?: any;
+  masterOptions: MasterOptions; // Add this new prop
+}
+
+export default function ProductForm({ product, masterOptions }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(!product);
   const [isLoading, setIsLoading] = useState(false);
 
   const isEditMode = !!product;
+
+  // Helper to safely extract ID whether the product field is a string ID or populated object
+  const getSafeId = (fieldValue: any) => fieldValue?._id || fieldValue || "";
 
   const form = useForm<FormType>({
     resolver: zodResolver(productSchema),
@@ -47,9 +63,10 @@ export default function ProductForm({ product }: Props) {
       name: product?.name || "",
       code: product?.code?.replace("VJ-", "") || "",
       description: product?.description || "",
-      category: product?.category || "Earrings",
-      style: product?.style || "Modern",
-      type: product?.type || "Everyday",
+      // Use the safe ID helper to set the initial selected values
+      category: getSafeId(product?.category),
+      style: getSafeId(product?.style),
+      type: getSafeId(product?.type),
     },
   });
 
@@ -156,7 +173,7 @@ export default function ProductForm({ product }: Props) {
                 <FormControl>
                   <div className="flex items-center border border-black/20 rounded-md h-11 overflow-hidden">
                     {/* PREFIX */}
-                    <div className="px-3   text-black/80 text-sm font-medium border-r">
+                    <div className="px-3 text-black/80 text-sm font-medium border-r">
                       VJ-
                     </div>
 
@@ -212,61 +229,54 @@ export default function ProductForm({ product }: Props) {
 
           {/* Category / Style / Type */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-            {["category", "style", "type"].map((fieldName) => (
-              <FormField
-                key={fieldName}
-                control={form.control}
-                name={fieldName as keyof FormType}
-                render={({ field }) => (
-                  <FormItem className="w-full space-y-2 min-h-[88px]">
-                    <FormLabel className="text-black capitalize">
-                      {fieldName}
-                    </FormLabel>
-                    <Select
-                      disabled={!editing}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full h-11 bg-white border-black/20 text-black focus:ring-black">
-                          <SelectValue placeholder={`Select ${fieldName}`} />
-                        </SelectTrigger>
-                      </FormControl>
+            {(["category", "style", "type"] as const).map((fieldName) => {
+              // Get the corresponding list of options from the masterOptions prop
+              // using a fallback to an empty array so it doesn't break
+              const optionsKey =
+                fieldName === "category" ? "categories" : `${fieldName}s`;
+              const options =
+                masterOptions[optionsKey as keyof MasterOptions] || [];
 
-                      <SelectContent>
-                        {fieldName === "category" && (
-                          <>
-                            <SelectItem value="Earrings">Earrings</SelectItem>
-                            <SelectItem value="Necklace">Necklace</SelectItem>
-                            <SelectItem value="Bracelet">Bracelet</SelectItem>
-                            <SelectItem value="Ring">Ring</SelectItem>
-                          </>
-                        )}
-                        {fieldName === "style" && (
-                          <>
-                            <SelectItem value="Modern">Modern</SelectItem>
-                            <SelectItem value="Traditional">
-                              Traditional
+              return (
+                <FormField
+                  key={fieldName}
+                  control={form.control}
+                  name={fieldName}
+                  render={({ field }) => (
+                    <FormItem className="w-full space-y-2 min-h-[88px]">
+                      <FormLabel className="text-black capitalize">
+                        {fieldName}
+                      </FormLabel>
+                      <Select
+                        disabled={!editing}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full h-11 bg-white border-black/20 text-black focus:ring-black">
+                            <SelectValue placeholder={`Select ${fieldName}`} />
+                          </SelectTrigger>
+                        </FormControl>
+
+                        <SelectContent>
+                          {options.length === 0 && (
+                            <SelectItem value="none" disabled>
+                              No options available
                             </SelectItem>
-                            <SelectItem value="Party">Party</SelectItem>
-                            <SelectItem value="Minimal">Minimal</SelectItem>
-                          </>
-                        )}
-                        {fieldName === "type" && (
-                          <>
-                            <SelectItem value="Everyday">Everyday</SelectItem>
-                            <SelectItem value="Anti Tarnish">
-                              Anti Tarnish
+                          )}
+                          {options.map((opt) => (
+                            <SelectItem key={opt._id} value={opt._id}>
+                              {opt.name}
                             </SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-black" />
-                  </FormItem>
-                )}
-              />
-            ))}
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-black" />
+                    </FormItem>
+                  )}
+                />
+              );
+            })}
           </div>
 
           {/* Save Button */}
