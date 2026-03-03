@@ -11,7 +11,8 @@ export async function saveSiteConfig(formData: FormData) {
     await connectDB();
 
     // ================= BASIC FIELDS =================
-    const template = formData.get("template")?.toString(); // ADDED THIS
+    const template = formData.get("template")?.toString();
+    const animation = formData.get("animation")?.toString(); // ADDED THIS
 
     const header_bg = formData.get("header_bg")?.toString();
     const footer_bg = formData.get("footer_bg")?.toString();
@@ -42,6 +43,7 @@ export async function saveSiteConfig(formData: FormData) {
     // Text fields like banner_text are allowed to be empty ("").
     if (
       !template ||
+      !animation ||
       !header_bg ||
       !footer_bg ||
       !cta_bg ||
@@ -141,7 +143,8 @@ export async function saveSiteConfig(formData: FormData) {
     const updated = await SiteConfig.findOneAndUpdate(
       {},
       {
-        template, // ADDED THIS
+        template,
+        animation, // ADDED THIS
         header_bg,
         footer_bg,
         cta_bg,

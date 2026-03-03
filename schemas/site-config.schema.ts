@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const siteConfigSchema = z.object({
   template: z.string(),
+  animation: z.string(),
 
   header_bg: z.string().min(1),
   footer_bg: z.string().min(1),

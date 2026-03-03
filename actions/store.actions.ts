@@ -333,13 +333,6 @@ export async function getStoreProducts({
       }
     }
 
-    console.log({
-      name: baseProduct.name,
-      productLevelDiscount,
-      variantDiscountMap,
-      visibleVariant: baseProduct.usableVariants?.[0]?._id,
-    });
-
     return {
       ...baseProduct,
       discountPercent,

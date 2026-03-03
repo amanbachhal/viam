@@ -24,18 +24,22 @@ export function ProductCard({ product }: Props) {
     ? `₹${product.minPrice.toLocaleString()}`
     : `From ₹${product.minPrice.toLocaleString()}`;
 
+  const discountedText = product.discountedPriceSame
+    ? `₹${product.discountedMinPrice?.toLocaleString()}`
+    : `From ₹${product.discountedMinPrice?.toLocaleString()}`;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.4 }}
       className="h-full"
     >
       <Link href={`/product/${product.id}`} className="block h-full">
-        <Card className="group flex flex-col h-full overflow-hidden rounded-xl border border-stone-100 bg-white shadow-sm hover:shadow-lg transition p-0 cursor-pointer gap-0">
+        <Card className="group flex flex-col h-full overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-0 gap-0 cursor-pointer">
           {/* IMAGE */}
-          <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+          <div className="relative aspect-[3/4] overflow-hidden bg-stone-100">
             <Image
               src={imageSrc}
               alt={product.name}
@@ -44,70 +48,84 @@ export function ProductCard({ product }: Props) {
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
 
-            {/* PRODUCT LEVEL DISCOUNT BADGE */}
+            {/* Soft bottom gradient for luxury feel */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+
+            {/* DISCOUNT BADGE */}
             {hasProductDiscount && (
-              <Badge className="absolute top-2 left-2 bg-red-600 text-white">
+              <Badge className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 text-xs font-semibold rounded-full shadow-md">
                 {product.discountPercent}% OFF
               </Badge>
             )}
 
-            {/* VARIANT DISCOUNT (NOT VISIBLE VARIANT) */}
             {!hasProductDiscount && product.showVariantTagOnly && (
-              <Badge className="absolute top-2 left-2 bg-orange-500 text-white">
+              <Badge className="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 text-xs rounded-full">
                 Variant Discount
               </Badge>
             )}
 
+            {/* OUT OF STOCK */}
             {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <Badge variant="secondary" className="px-4 py-1">
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+                <span className="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full shadow">
                   Out of Stock
-                </Badge>
+                </span>
               </div>
             )}
           </div>
 
           {/* CONTENT */}
-          <div className="flex flex-col flex-1 p-4 space-y-2">
-            <div className="flex flex-col gap-1">
-              <p className="line-clamp-2 flex-1 text-sm!">{product.name}</p>
+          <div className="flex flex-col flex-1 p-4 space-y-3">
+            {/* NAME */}
+            <h3 className=" font-medium leading-snug line-clamp-2 text-stone-800">
+              {product.name}
+            </h3>
 
-              {/* PRICE SECTION */}
+            {/* PRICE SECTION */}
+            <div className="flex items-center gap-2">
               {hasProductDiscount ? (
-                <div className="flex items-center gap-2">
-                  <p className="text-xs line-through text-muted-foreground">
+                <>
+                  <span className="text-xs line-through text-stone-400">
                     {priceText}
-                  </p>
-                  <p className="text-sm font-semibold text-red-600">
-                    {product.discountedPriceSame
-                      ? `₹${product.discountedMinPrice.toLocaleString()}`
-                      : `From ₹${product.discountedMinPrice.toLocaleString()}`}
-                  </p>
-                </div>
+                  </span>
+                  <span className="text-base font-semibold text-red-600">
+                    {discountedText}
+                  </span>
+                </>
               ) : (
-                <p className="text-sm font-semibold shrink-0">{priceText}</p>
+                <span className="text-base font-semibold text-stone-900">
+                  {priceText}
+                </span>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 mt-2">
-              <span className="text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
-                {product.categoryName || product.category}
-              </span>
-
-              <span className="text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
-                {product.styleName || product.style}
-              </span>
-
-              <span className="text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
-                {product.typeName || product.type}
-              </span>
+            {/* TAGS */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                product.categoryName || product.category,
+                product.styleName || product.style,
+                product.typeName || product.type,
+              ]
+                .filter(Boolean)
+                .map((tag, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] px-2 py-1 rounded-full bg-stone-100 text-stone-600 font-medium tracking-wide"
+                  >
+                    {tag}
+                  </span>
+                ))}
             </div>
 
+            {/* CTA
             <div className="mt-auto pt-3">
-              <Button variant="outline" className="bg-white w-full">
+              <Button
+                variant="outline"
+                className="w-full rounded-full border-stone-300 hover:bg-black hover:text-white transition-all duration-300"
+              >
                 View Details
               </Button>
-            </div>
+            </div> */}
           </div>
         </Card>
       </Link>

@@ -28,12 +28,23 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { SiteConfigFormValues } from "@/schemas/site-config.schema";
 import { Switch } from "../ui/switch";
+import { AmbientMode } from "../ambient-background";
 
 interface Props {
   config?: any;
 }
 
 const DEFAULT_HERO_IMAGES = ["/hero1.webp", "/hero2.webp", "/hero3.webp"];
+
+const ANIMATION_OPTIONS: AmbientMode[] = [
+  "off",
+  "sparkle",
+  "snow",
+  "holi",
+  "diwali",
+  "valentine",
+  "republic",
+];
 
 type ColorFieldKeys =
   | "header_bg"
@@ -210,43 +221,75 @@ export default function SiteConfigForm({ config }: Props) {
     <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white py-10">
       <Form<SiteConfigFormValues> {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
-          {/* TEMPLATE */}
-          <FormField
-            control={form.control}
-            name="template"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Theme Template</FormLabel>
+          <div className="flex flex-col sm:flex-row gap-6 w-full">
+            {/* TEMPLATE */}
+            <FormField
+              control={form.control}
+              name="template"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Theme Template</FormLabel>
 
-                <Select
-                  onValueChange={(value) => {
-                    const templateKey = value as ThemeTemplateKey;
-                    field.onChange(templateKey);
+                  <Select
+                    onValueChange={(value) => {
+                      const templateKey = value as ThemeTemplateKey;
+                      field.onChange(templateKey);
 
-                    form.reset({
-                      template: templateKey,
-                      ...THEME_TEMPLATES[templateKey],
-                    });
-                  }}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="max-w-sm">
-                      <SelectValue placeholder="Select template" />
-                    </SelectTrigger>
-                  </FormControl>
+                      form.reset({
+                        template: templateKey,
+                        ...THEME_TEMPLATES[templateKey],
+                      });
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="max-w-sm">
+                        <SelectValue placeholder="Select template" />
+                      </SelectTrigger>
+                    </FormControl>
 
-                  <SelectContent>
-                    {Object.keys(THEME_TEMPLATES).map((key) => (
-                      <SelectItem key={key} value={key}>
-                        {key.replace("_", " ").toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
+                    <SelectContent>
+                      {Object.keys(THEME_TEMPLATES).map((key) => (
+                        <SelectItem key={key} value={key}>
+                          {key.replace("_", " ").toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+
+            {/* ANIMATION (FIXED) */}
+            <FormField
+              control={form.control}
+              name="animation"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Background Animation</FormLabel>
+
+                  <Select
+                    onValueChange={field.onChange} // Standard onChange, no form resets!
+                    value={field.value || "off"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select animation" />
+                      </SelectTrigger>
+                    </FormControl>
+
+                    <SelectContent>
+                      {ANIMATION_OPTIONS.map((key) => (
+                        <SelectItem key={key} value={key}>
+                          {key.toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+          </div>
 
           {/* LOGO SELECTOR */}
           <div className="space-y-6">

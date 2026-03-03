@@ -52,23 +52,23 @@ export const THEME_TEMPLATES = {
     header_bg: "#be185d", // Vibrant Rani Pink (The most iconic Holi Gulaal)
     footer_bg: "#831843", // Deep Magenta to ground the footer
 
-    cta_bg: "#facc15", // Bright Haldi Yellow
-    cta_font_color: "#713f12", // Deep golden-brown for sharp readability
+    cta_bg: "#0ea5e9", // Bright Haldi Yellow
+    cta_font_color: "#000000", // Deep golden-brown for sharp readability
 
     menu_option_bg: "#db2777", // Brighter Pink for interactive menus
     menu_option_font_color: "#ffffff", // Crisp White
 
     footer_font_color: "#fef08a", // Soft Yellow text in the footer
 
-    hero_bg: "#0ea5e9", // Electric Sky Blue (Beautiful, contrasting Gulaal splash)
-    hero_font_color: "#ffffff", // Crisp White text to stand out on the blue
+    hero_bg: "#be185d", // Electric Sky Blue (Beautiful, contrasting Gulaal splash)
+    hero_font_color: "#fff7c2", // Crisp White text to stand out on the blue
 
     hero_title: "A Splash of Joy",
     hero_subtitle:
       "Embrace the vibrant energy and bold colors of Holi with our festive collection.",
 
     show_banner: true,
-    banner_bg: "#22c55e", // Bright Gulaal Green
+    banner_bg: "#ae094e", // Bright Gulaal Green
     banner_font_color: "#ffffff",
     banner_text: "🌈 Happy Holi! Explore our vibrant festive edit",
   },

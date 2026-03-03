@@ -3,6 +3,7 @@ import mongoose, { Schema, models } from "mongoose";
 const SiteConfigSchema = new Schema(
   {
     template: { type: String, required: true, default: "default" },
+    animation: { type: String, required: true, default: "off" },
 
     header_bg: { type: String, required: true },
     footer_bg: { type: String, required: true },

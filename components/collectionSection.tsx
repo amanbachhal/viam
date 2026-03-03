@@ -6,11 +6,12 @@ import { ProductCard } from "./productCard";
 import { Button } from "@/components/ui/button";
 import { getStoreProducts } from "@/actions/store.actions";
 import { StoreProduct, StoreProductsResponse } from "@/types/product";
+import { AmbientBackground } from "./ambient-background";
+import { useSiteConfig } from "./providers/site-config-provider";
 
 interface Props {
   initialProducts: StoreProductsResponse;
   filterOptions: {
-    // Add this prop
     categories: any[];
     styles: any[];
     types: any[];
@@ -30,6 +31,8 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
   const [style, setStyle] = useState("All");
   const [type, setType] = useState("All");
   const [search, setSearch] = useState("");
+
+  const config = useSiteConfig();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,45 +71,49 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
   }
 
   return (
-    <section className="w-full px-6 py-20">
-      <div className="max-w-7xl mx-auto">
-        <ProductFilters
-          category={category}
-          style={style}
-          type={type}
-          search={search}
-          filterOptions={filterOptions}
-          onCategoryChange={setCategory}
-          onStyleChange={setStyle}
-          onTypeChange={setType}
-          onSearchChange={setSearch}
-        />
+    <section className="relative w-full px-6 py-20 bg-white overflow-hidden">
+      <AmbientBackground mode={config.animation || "off"} />
 
-        {products.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto">
+          <ProductFilters
+            category={category}
+            style={style}
+            type={type}
+            search={search}
+            filterOptions={filterOptions}
+            onCategoryChange={setCategory}
+            onStyleChange={setStyle}
+            onTypeChange={setType}
+            onSearchChange={setSearch}
+          />
 
-            {hasMore && (
-              <div className="flex justify-center mt-12">
-                <Button
-                  onClick={() => fetchProducts()}
-                  disabled={loading}
-                  className="px-10 rounded-full bg-black text-white hover:bg-[#E3BB76] hover:text-black transition-colors"
-                >
-                  {loading ? "Loading..." : "Load More"}
-                </Button>
+          {products.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
               </div>
-            )}
-          </>
-        ) : (
-          <div className="py-20 text-center text-muted-foreground font-serif text-xl">
-            No designs found matching your criteria.
-          </div>
-        )}
+
+              {hasMore && (
+                <div className="flex justify-center mt-12">
+                  <Button
+                    onClick={() => fetchProducts()}
+                    disabled={loading}
+                    className="px-10 rounded-full bg-black text-white hover:bg-[#E3BB76] hover:text-black transition-colors"
+                  >
+                    {loading ? "Loading..." : "Load More"}
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="py-20 text-center text-muted-foreground font-serif text-xl">
+              No designs found matching your criteria.
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
