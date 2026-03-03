@@ -1,17 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { loginAdmin } from "@/actions/auth.actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const login = async () => {
     const isValid = password.length >= 1 && password.length <= 20;
@@ -23,26 +21,20 @@ export default function AdminLogin() {
 
     try {
       setLoading(true);
-
       const res = await loginAdmin(password);
 
       if (!res.success) {
         toast.error("Wrong password");
+        setLoading(false); // Reset loading if password is wrong
         return;
       }
 
       toast.success("Login successful");
-
-      // Force a hard navigation. This bypasses the Next.js client cache
-      // and guarantees your middleware receives the fresh cookie.
       window.location.href = "/admin/products";
     } catch (error) {
       toast.error("Something went wrong");
-      setLoading(false); // Make sure this is here or in a finally block!
+      setLoading(false); // Reset loading on network/server error
     }
-    // Remove the `finally { setLoading(false) }` block because
-    // window.location.href will navigate away from the page anyway.
-    // Setting it to false right before a hard redirect can sometimes cause a flash.
   };
 
   return (

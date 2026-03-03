@@ -3,13 +3,91 @@
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/product.model";
 import Master from "@/models/master.model";
+import Discount from "@/models/discount.model";
 import { serialize } from "@/lib/serialize";
 import mongoose from "mongoose";
 
+/* ================= DISCOUNT HELPERS ================= */
+
+function applyDiscount(price: number, percent: number) {
+  return Math.round(price * (1 - percent / 100));
+}
+
+function resolveDiscountForProduct(product: any, activeDiscounts: any[]) {
+  let productLevelDiscount: number | null = null;
+  let variantDiscountMap: Record<string, number> = {};
+  let hasVariantDiscount = false;
+
+  for (const discount of activeDiscounts) {
+    const value = discount.value;
+
+    if (discount.type === "all") {
+      productLevelDiscount = Math.max(productLevelDiscount || 0, value);
+    }
+
+    // CATEGORY
+    if (
+      discount.type === "category" &&
+      discount.categories?.some(
+        (id: any) => id.toString() === product.category?.toString(),
+      )
+    ) {
+      productLevelDiscount = Math.max(productLevelDiscount || 0, value);
+    }
+
+    // STYLE
+    if (
+      discount.type === "style" &&
+      discount.styles?.some(
+        (id: any) => id.toString() === product.style?.toString(),
+      )
+    ) {
+      productLevelDiscount = Math.max(productLevelDiscount || 0, value);
+    }
+
+    // TYPE
+    if (
+      discount.type === "type" &&
+      discount.types?.some(
+        (id: any) => id.toString() === product.type?.toString(),
+      )
+    ) {
+      productLevelDiscount = Math.max(productLevelDiscount || 0, value);
+    }
+
+    if (
+      discount.type === "product" &&
+      discount.products?.some(
+        (id: any) => id.toString() === product.id?.toString(),
+      )
+    ) {
+      productLevelDiscount = Math.max(productLevelDiscount || 0, value);
+    }
+
+    if (discount.type === "variant") {
+      for (const variant of product.variants || []) {
+        const match = discount.variants?.some(
+          (id: any) => id.toString() === variant._id?.toString(),
+        );
+
+        if (match) {
+          variantDiscountMap[variant._id.toString()] = value;
+          hasVariantDiscount = true;
+        }
+      }
+    }
+  }
+
+  return {
+    productLevelDiscount,
+    variantDiscountMap,
+    hasVariantDiscount,
+  };
+}
+
 /**
  * GET STORE PRODUCTS
- * Handles complex filtering, searching across products/variants,
- * and dynamic name resolution for Category/Style/Type.
+ * Original functionality preserved + discount logic layered on top.
  */
 export async function getStoreProducts({
   search = "",
@@ -29,10 +107,16 @@ export async function getStoreProducts({
   await connectDB();
 
   const skip = (page - 1) * limit;
+  const now = new Date();
+
+  const activeDiscounts = await Discount.find({
+    isActive: true,
+    startAt: { $lte: now },
+    endAt: { $gte: now },
+  }).lean();
+
   const productMatch: any = {};
 
-  // 1. CAST STRINGS TO OBJECTIDS
-  // Aggregation $match requires strict types unlike .find()
   if (category && category !== "All") {
     productMatch.category = new mongoose.Types.ObjectId(category);
   }
@@ -43,15 +127,12 @@ export async function getStoreProducts({
     productMatch.type = new mongoose.Types.ObjectId(type);
   }
 
-  // Escape regex helper
   const escapeRegex = (str: string) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   const pipeline: any[] = [
-    // FILTER BY PRODUCT FIELDS
     { $match: productMatch },
 
-    // JOIN VARIANTS
     {
       $lookup: {
         from: "productvariants",
@@ -61,14 +142,8 @@ export async function getStoreProducts({
       },
     },
 
-    // PRODUCT MUST HAVE AT LEAST ONE VARIANT
-    {
-      $match: {
-        "variants.0": { $exists: true },
-      },
-    },
+    { $match: { "variants.0": { $exists: true } } },
 
-    // SEARCH (PRODUCT + VARIANT)
     ...(search
       ? (() => {
           const escaped = escapeRegex(search.trim());
@@ -100,12 +175,9 @@ export async function getStoreProducts({
         })()
       : []),
 
-    // STOCK + IN STOCK VARIANTS LOGIC
     {
       $addFields: {
-        inStock: {
-          $anyElementTrue: "$variants.in_stock",
-        },
+        inStock: { $anyElementTrue: "$variants.in_stock" },
         inStockVariants: {
           $filter: {
             input: "$variants",
@@ -116,7 +188,6 @@ export async function getStoreProducts({
       },
     },
 
-    // USE IN STOCK VARIANTS IF AVAILABLE
     {
       $addFields: {
         usableVariants: {
@@ -129,7 +200,6 @@ export async function getStoreProducts({
       },
     },
 
-    // PRICE RANGE
     {
       $addFields: {
         minPrice: { $min: "$usableVariants.price" },
@@ -143,7 +213,6 @@ export async function getStoreProducts({
       },
     },
 
-    // SAFE IMAGE EXTRACTION
     {
       $addFields: {
         image: {
@@ -176,16 +245,9 @@ export async function getStoreProducts({
       },
     },
 
-    // SORT (In Stock first, then newest)
-    {
-      $sort: {
-        inStock: -1,
-        createdAt: -1,
-      },
-    },
+    { $sort: { inStock: -1, createdAt: -1 } },
   ];
 
-  // FETCH DATA + MASTER CONFIG CONCURRENTLY
   const [totalRes, productsRaw, masterDoc] = await Promise.all([
     Product.aggregate([...pipeline, { $count: "total" }]),
     Product.aggregate([
@@ -201,6 +263,8 @@ export async function getStoreProducts({
           category: 1,
           style: 1,
           type: 1,
+          variants: 1,
+          usableVariants: 1,
           inStock: 1,
           image: { $ifNull: ["$image", null] },
           minPrice: 1,
@@ -214,16 +278,73 @@ export async function getStoreProducts({
 
   const total = totalRes[0]?.total || 0;
 
-  // 2. RESOLVE NAMES FROM MASTER IDS
   const products = productsRaw.map((p: any) => {
     const findName = (list: any[], id: any) =>
       list?.find((item: any) => item._id.toString() === id?.toString())?.name;
 
-    return {
+    const baseProduct = {
       ...p,
       categoryName: findName(masterDoc?.categories, p.category),
       styleName: findName(masterDoc?.styles, p.style),
       typeName: findName(masterDoc?.types, p.type),
+    };
+
+    /* ===== APPLY DISCOUNT ===== */
+    /* ===== APPLY DISCOUNT ===== */
+
+    const { productLevelDiscount, variantDiscountMap } =
+      resolveDiscountForProduct(baseProduct, activeDiscounts);
+
+    let discountedMinPrice: number | null = null;
+    let discountPercent: number | null = null;
+    let showVariantTagOnly = false;
+
+    // 1️⃣ PRODUCT LEVEL DISCOUNT
+    if (productLevelDiscount) {
+      discountPercent = productLevelDiscount;
+      discountedMinPrice = applyDiscount(
+        baseProduct.minPrice,
+        productLevelDiscount,
+      );
+    }
+
+    // 2️⃣ VARIANT LEVEL DISCOUNT (ONLY IF NO PRODUCT DISCOUNT)
+    if (!productLevelDiscount) {
+      const visibleVariant = baseProduct.usableVariants?.[0];
+
+      if (visibleVariant) {
+        const visibleVariantId = visibleVariant._id?.toString();
+        const visibleVariantDiscount = variantDiscountMap[visibleVariantId];
+
+        const anyVariantHasDiscount =
+          Object.keys(variantDiscountMap).length > 0;
+
+        if (visibleVariantDiscount) {
+          // Visible variant has discount
+          discountPercent = visibleVariantDiscount;
+          discountedMinPrice = applyDiscount(
+            visibleVariant.price,
+            visibleVariantDiscount,
+          );
+        } else if (anyVariantHasDiscount) {
+          // Some other variant has discount
+          showVariantTagOnly = true;
+        }
+      }
+    }
+
+    console.log({
+      name: baseProduct.name,
+      productLevelDiscount,
+      variantDiscountMap,
+      visibleVariant: baseProduct.usableVariants?.[0]?._id,
+    });
+
+    return {
+      ...baseProduct,
+      discountPercent,
+      discountedMinPrice,
+      showVariantTagOnly,
     };
   });
 
@@ -239,7 +360,7 @@ export async function getStoreProducts({
 
 /**
  * GET PRODUCT DETAILS
- * Fetches single product, its variants, and resolves category name for related products.
+ * Fully preserves original functionality + adds variant level discount logic.
  */
 export async function getProductDetails(id: string) {
   try {
@@ -249,8 +370,9 @@ export async function getProductDetails(id: string) {
       return { success: false, error: "Invalid product ID" };
     }
 
-    // Parallel fetch: Current Product + Master Config
-    const [productData, masterDoc] = await Promise.all([
+    const now = new Date();
+
+    const [productData, masterDoc, activeDiscounts] = await Promise.all([
       Product.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(id) } },
         {
@@ -263,6 +385,11 @@ export async function getProductDetails(id: string) {
         },
       ]),
       Master.findOne().lean(),
+      Discount.find({
+        isActive: true,
+        startAt: { $lte: now },
+        endAt: { $gte: now },
+      }).lean(),
     ]);
 
     if (!productData || productData.length === 0) {
@@ -271,22 +398,68 @@ export async function getProductDetails(id: string) {
 
     const productRaw = productData[0];
 
-    // Resolve names for the main product
     const findName = (list: any[], id: any) =>
       list?.find((item: any) => item._id.toString() === id?.toString())?.name;
 
-    const product = {
+    let product: any = {
       ...productRaw,
       categoryName: findName(masterDoc?.categories, productRaw.category),
       styleName: findName(masterDoc?.styles, productRaw.style),
       typeName: findName(masterDoc?.types, productRaw.type),
     };
 
-    // Related products logic (Same category, populated names)
+    /* ===== APPLY DISCOUNT TO PRODUCT PAGE ===== */
+
+    const discountInfo = resolveDiscountForProduct(
+      { ...product, id: product._id },
+      activeDiscounts,
+    );
+
+    /* ===== APPLY DISCOUNT TO PRODUCT PAGE ===== */
+
+    const { productLevelDiscount, variantDiscountMap } =
+      resolveDiscountForProduct(
+        { ...product, id: product._id },
+        activeDiscounts,
+      );
+
+    product.variants = product.variants.map((variant: any) => {
+      let percent: number | null = null;
+
+      // Product-level discount overrides
+      if (productLevelDiscount) {
+        percent = productLevelDiscount;
+      }
+
+      // Otherwise check variant-level
+      if (!percent) {
+        const variantPercent = variantDiscountMap?.[variant._id?.toString()];
+        if (variantPercent) {
+          percent = variantPercent;
+        }
+      }
+
+      if (percent) {
+        return {
+          ...variant,
+          discountPercent: percent,
+          discountedPrice: applyDiscount(variant.price, percent),
+        };
+      }
+
+      return {
+        ...variant,
+        discountPercent: null,
+        discountedPrice: null,
+      };
+    });
+
+    /* ===== RELATED PRODUCTS (UNCHANGED) ===== */
+
     const relatedProductsRaw = await Product.aggregate([
       {
         $match: {
-          category: productRaw.category, // Already an ObjectId in productRaw
+          category: productRaw.category,
           _id: { $ne: productRaw._id },
         },
       },

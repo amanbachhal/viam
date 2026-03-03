@@ -35,7 +35,7 @@ export default function ProductClient({
 
   const [selectedVariant, setSelectedVariant] = useState(defaultVariant);
   const [activeImage, setActiveImage] = useState(
-    defaultVariant?.images?.[0] || "",
+    defaultVariant?.images?.[0] || "/placeholder.webp",
   );
 
   // Update active image when a new variant is selected
@@ -150,10 +150,24 @@ export default function ProductClient({
                 {product.name}
               </h1>
 
-              <div className="flex items-baseline gap-4 mt-4">
-                <p className="text-3xl font-light text-stone-900">
-                  ₹{selectedVariant?.price?.toLocaleString() || "0"}
-                </p>
+              <div className="flex items-center gap-4 mt-4">
+                {selectedVariant?.discountedPrice ? (
+                  <>
+                    <p className="text-lg line-through text-stone-400">
+                      ₹{selectedVariant.price.toLocaleString()}
+                    </p>
+                    <p className="text-3xl font-light text-red-600">
+                      ₹{selectedVariant.discountedPrice.toLocaleString()}
+                    </p>
+                    <Badge className="bg-red-600 text-white">
+                      {selectedVariant.discountPercent}% OFF
+                    </Badge>
+                  </>
+                ) : (
+                  <p className="text-3xl font-light text-stone-900">
+                    ₹{selectedVariant?.price?.toLocaleString() || "0"}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -183,10 +197,10 @@ export default function ProductClient({
                       )}
                     >
                       {variant.images?.[0] && (
-                        <div className="w-10 h-10 rounded-md overflow-hidden shrink-0">
+                        <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-stone-100 flex items-center justify-center">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={variant.images[0]}
+                            src={variant.images?.[0] || "/placeholder.webp"}
                             alt={variant.name}
                             className="w-full h-full object-cover"
                           />
@@ -196,9 +210,22 @@ export default function ProductClient({
                         <p className="text-xs font-bold text-stone-900">
                           {variant.name}
                         </p>
-                        <p className="text-[10px] text-stone-500">
-                          ₹{variant.price.toLocaleString()}
-                        </p>
+                        <div className="text-[10px]">
+                          {variant.discountedPrice ? (
+                            <div className="flex items-center gap-2">
+                              <span className="line-through text-stone-400">
+                                ₹{variant.price.toLocaleString()}
+                              </span>
+                              <span className="text-red-600 font-semibold">
+                                ₹{variant.discountedPrice.toLocaleString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-stone-500">
+                              ₹{variant.price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   ))}

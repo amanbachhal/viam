@@ -17,6 +17,9 @@ export function ProductCard({ product }: Props) {
   const imageSrc = product.image || FALLBACK_IMAGE;
   const isOutOfStock = !product.inStock;
 
+  const hasProductDiscount =
+    product.discountPercent && product.discountedMinPrice;
+
   const priceText = product.priceSame
     ? `₹${product.minPrice.toLocaleString()}`
     : `From ₹${product.minPrice.toLocaleString()}`;
@@ -41,6 +44,20 @@ export function ProductCard({ product }: Props) {
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
 
+            {/* PRODUCT LEVEL DISCOUNT BADGE */}
+            {hasProductDiscount && (
+              <Badge className="absolute top-2 left-2 bg-red-600 text-white">
+                {product.discountPercent}% OFF
+              </Badge>
+            )}
+
+            {/* VARIANT DISCOUNT (NOT VISIBLE VARIANT) */}
+            {!hasProductDiscount && product.showVariantTagOnly && (
+              <Badge className="absolute top-2 left-2 bg-orange-500 text-white">
+                Variant Discount
+              </Badge>
+            )}
+
             {isOutOfStock && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <Badge variant="secondary" className="px-4 py-1">
@@ -55,18 +72,33 @@ export function ProductCard({ product }: Props) {
             <div className="flex flex-col gap-1">
               <p className="line-clamp-2 flex-1 text-sm!">{product.name}</p>
 
-              <p className="text-sm font-semibold shrink-0">{priceText}</p>
+              {/* PRICE SECTION */}
+              {hasProductDiscount ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs line-through text-muted-foreground">
+                    {priceText}
+                  </p>
+                  <p className="text-sm font-semibold text-red-600">
+                    {product.discountedPriceSame
+                      ? `₹${product.discountedMinPrice.toLocaleString()}`
+                      : `From ₹${product.discountedMinPrice.toLocaleString()}`}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm font-semibold shrink-0">{priceText}</p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className=" text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
+              <span className="text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
                 {product.categoryName || product.category}
               </span>
-              {/* FIX: Used Name instead of ID */}
-              <span className=" text-stone-500 text-[10px] font-bold uppercase tracking-widest underline ">
+
+              <span className="text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
                 {product.styleName || product.style}
               </span>
-              <span className=" text-stone-500 text-[10px] font-bold uppercase tracking-widest underline ">
+
+              <span className="text-stone-500 text-[10px] font-bold uppercase tracking-widest underline">
                 {product.typeName || product.type}
               </span>
             </div>

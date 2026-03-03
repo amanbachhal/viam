@@ -292,3 +292,28 @@ export async function getVariants({
     throw new Error(error?.message || "Failed to fetch variants");
   }
 }
+
+// ================= DROPDOWN VARIANTS (FOR DISCOUNT FORM) =================
+export async function getVariantsForDropdown() {
+  try {
+    await connectDB();
+
+    const variants = await ProductVariant.find({})
+      .select("_id name code")
+      .sort({ name: 1 })
+      .lean();
+
+    return {
+      success: true,
+      data: serialize(
+        variants.map((v: any) => ({
+          _id: v._id,
+          name: v.name,
+          code: v.code,
+        })),
+      ),
+    };
+  } catch (error: any) {
+    throw new Error(error?.message || "Failed to fetch variants");
+  }
+}

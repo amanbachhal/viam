@@ -46,7 +46,6 @@ const MasterSection = ({
             <div>Name</div>
             <div className="text-center">Order</div>
             <div className="text-center">Active</div>
-            <div></div>
           </div>
         )}
 
@@ -72,25 +71,25 @@ const MasterSection = ({
               )}
             />
 
-            {/* ORDER */}
-            <FormField
-              control={form.control}
-              name={`${name}.${index}.order`}
-              render={({ field }) => (
-                <FormItem className="space-y-0">
-                  <FormControl>
-                    <Input
-                      type="number"
-                      className="h-9 border-0 focus-visible:ring-1 text-center bg-transparent"
-                      // Extract standard props and override onChange to ensure it passes a Number
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-[1fr_auto] gap-3 items-center sm:contents">
+              {/* ORDER */}
+              <FormField
+                control={form.control}
+                name={`${name}.${index}.order`}
+                render={({ field }) => (
+                  <FormItem className="space-y-0">
+                    <FormControl>
+                      <Input
+                        type="number"
+                        className="h-9 border-0 focus-visible:ring-1 text-center bg-transparent w-full sm:w-[80px]"
+                        // Extract standard props and override onChange to ensure it passes a Number
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
               {/* IS ACTIVE */}
               <FormField
                 control={form.control}
@@ -106,17 +105,6 @@ const MasterSection = ({
                   </FormItem>
                 )}
               />
-
-              {/* DELETE */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-red-500 hover:text-red-600 hover:bg-red-50"
-                onClick={() => remove(index)}
-              >
-                <Trash2 size={16} />
-              </Button>
             </div>
           </div>
         ))}
