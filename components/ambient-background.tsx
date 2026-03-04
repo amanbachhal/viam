@@ -22,50 +22,55 @@ export function AmbientBackground({ mode = "off" }: AmbientProps) {
   const particles = useMemo(() => Array.from({ length: 120 }), [mode]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-white">
-      <AnimatePresence mode="wait">
-        {mode === "sparkle" && <SparkleMode particles={particles} />}
-        {mode === "snow" && <SnowMode particles={particles} />}
-        {mode === "holi" && <HoliMode />}
-        {mode === "diwali" && <DiwaliSkyExplosions />}
-        {mode === "valentine" && <ValentineMode particles={particles} />}
-        {mode === "republic" && <RepublicPetals />}
-      </AnimatePresence>
+    <div className="absolute inset-0 pointer-events-none z-0 bg-white">
+      <div className="sticky top-0 left-0 w-full h-[100dvh] overflow-hidden">
+        <AnimatePresence mode="wait">
+          {mode === "sparkle" && <SparkleMode particles={particles} />}
+          {mode === "snow" && <SnowMode particles={particles} />}
+          {mode === "holi" && <HoliMode />}
+          {mode === "diwali" && <DiwaliSkyExplosions />}
+          {mode === "valentine" && <ValentineMode particles={particles} />}
+          {mode === "republic" && <RepublicPetals />}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
 
-/* --- REVISED MODES: SLIGHT OPACITY BUMP --- */
+/* --- REVISED MODES --- */
 
 const DiwaliSkyExplosions = () => {
-  // 4 controlled zones so explosions spread perfectly across the screen without overlapping
+  // Increased from 4 to 8 zones, spread further out across the screen
   const burstZones = [
-    { left: "20%", top: "25%", delay: 0 },
-    { left: "80%", top: "20%", delay: 2.5 },
-    { left: "35%", top: "60%", delay: 5 },
-    { left: "70%", top: "55%", delay: 1.5 },
+    { left: "15%", top: "20%", delay: 0 },
+    { left: "85%", top: "15%", delay: 1.2 },
+    { left: "40%", top: "40%", delay: 3 },
+    { left: "75%", top: "60%", delay: 0.5 },
+    { left: "25%", top: "75%", delay: 2 },
+    { left: "55%", top: "85%", delay: 4 },
+    { left: "10%", top: "50%", delay: 5 },
+    { left: "90%", top: "45%", delay: 2.8 },
   ];
 
   return (
     <>
       {burstZones.map((zone, bIdx) => (
         <React.Fragment key={bIdx}>
-          {[...Array(16)].map((_, i) => {
-            const angle = (i / 16) * Math.PI * 2;
-            // Alternating distances create a beautiful "inner and outer ring" firework effect
-            const distance = i % 2 === 0 ? 110 : 60;
+          {/* Increased sparks per burst from 16 to 24 */}
+          {[...Array(24)].map((_, i) => {
+            const angle = (i / 24) * Math.PI * 2;
+            // Increased the spread distance for a bigger explosion
+            const distance = i % 2 === 0 ? 160 : 90;
 
             return (
               <motion.div
                 key={i}
-                // Using a soft champagne gold
-                className="absolute rounded-full bg-[#e6c27a]"
+                className="absolute rounded-full bg-[#f3a916]"
                 initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
                 animate={{
-                  opacity: [0, 1.5, 0], // Bumped up from 0.6 for better visibility
-                  scale: [0, 1, 0.5],
+                  opacity: [0, 1, 0], // Max opacity
+                  scale: [0, 1.2, 0.5],
                   x: Math.cos(angle) * distance,
-                  // Adding +20 to Y creates a subtle downward "gravity" drift at the end
                   y: Math.sin(angle) * distance + 20,
                 }}
                 transition={{
@@ -78,10 +83,10 @@ const DiwaliSkyExplosions = () => {
                 style={{
                   left: zone.left,
                   top: zone.top,
-                  width: 3.5, // Slightly thicker spark
-                  height: 3.5,
-                  boxShadow: "0 0 10px rgba(212, 175, 55, 0.8)", // Stronger gold glow
-                  filter: "blur(0.5px)",
+                  width: 4.5, // Slightly bigger sparks
+                  height: 4.5,
+                  boxShadow: "0 0 12px rgba(243, 169, 22, 1)", // Stronger glow
+                  // Removed the blur completely for crisp, clear fireworks
                 }}
               />
             );
@@ -95,7 +100,6 @@ const DiwaliSkyExplosions = () => {
 const HoliMode = () => {
   const colors = ["#FF1493", "#00BFFF", "#FFD700", "#32CD32", "#FF4500"];
 
-  // Fixed spread so they don't randomly clump in the middle
   const positions = [
     { left: "15%", top: "20%" },
     { left: "80%", top: "70%" },
@@ -112,7 +116,8 @@ const HoliMode = () => {
           className="absolute rounded-full"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{
-            opacity: [0, 0.12, 0], // Bumped up from 0.08 so it registers on the screen
+            // Bumped peak opacity from 0.12 to 0.4 for much better visibility
+            opacity: [0, 0.4, 0],
             scale: [0.8, 1.2, 0.9],
           }}
           transition={{
@@ -125,15 +130,47 @@ const HoliMode = () => {
             left: pos.left,
             top: pos.top,
             backgroundColor: colors[i % colors.length],
-            width: "12vw",
-            height: "12vw",
-            filter: "blur(45px)",
+            width: "clamp(120px, 15vw, 250px)",
+            height: "clamp(120px, 15vw, 250px)",
+            filter: "blur(40px)",
           }}
         />
       ))}
     </>
   );
 };
+
+const SparkleMode = ({ particles }: { particles: any[] }) => (
+  <>
+    {particles.map((_, i) => (
+      <motion.div
+        key={i}
+        className="absolute rounded-full bg-amber-200"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{
+          // Bumped opacity from 0.8 to 1 for full visibility
+          opacity: [0, 1, 0],
+          // Bumped scale slightly so they get a bit larger
+          scale: [0, 2, 0],
+          rotate: [0, 90, 180],
+        }}
+        transition={{
+          duration: 2 + Math.random() * 2,
+          repeat: Infinity,
+          delay: Math.random() * 5,
+        }}
+        style={{
+          width: Math.random() * 4 + 2,
+          height: Math.random() * 4 + 2,
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          // Increased the opacity of the glow
+          boxShadow: "0 0 12px rgba(251, 191, 36, 1)",
+        }}
+      />
+    ))}
+  </>
+);
 
 /* --- PRESERVED MODES --- */
 
@@ -171,35 +208,6 @@ const RepublicPetals = () => {
     </>
   );
 };
-
-const SparkleMode = ({ particles }: { particles: any[] }) => (
-  <>
-    {particles.map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute rounded-full bg-amber-200"
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{
-          opacity: [0, 0.8, 0],
-          scale: [0, 1.5, 0],
-          rotate: [0, 90, 180],
-        }}
-        transition={{
-          duration: 2 + Math.random() * 2,
-          repeat: Infinity,
-          delay: Math.random() * 5,
-        }}
-        style={{
-          width: Math.random() * 4 + 2,
-          height: Math.random() * 4 + 2,
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          boxShadow: "0 0 10px rgba(251, 191, 36, 0.8)",
-        }}
-      />
-    ))}
-  </>
-);
 
 const SnowMode = ({ particles }: { particles: any[] }) => (
   <>

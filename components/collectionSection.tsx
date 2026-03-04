@@ -71,7 +71,7 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
   }
 
   return (
-    <section className="relative w-full px-6 py-20 bg-white overflow-hidden">
+    <section className="relative w-full px-6 py-20 bg-white">
       <AmbientBackground mode={config.animation || "off"} />
 
       <div className="relative z-10 max-w-7xl mx-auto">
