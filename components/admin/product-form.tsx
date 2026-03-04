@@ -21,12 +21,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { productSchema } from "@/schemas/product.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LockIcon, Pencil } from "lucide-react";
+import { LockIcon, Pencil, Loader2 } from "lucide-react"; // <-- Added Loader2
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 
 type FormType = z.infer<typeof productSchema>;
 
@@ -115,7 +116,7 @@ export default function ProductForm({ product, masterOptions }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white ">
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-black">
@@ -281,21 +282,76 @@ export default function ProductForm({ product, masterOptions }: Props) {
 
           {/* Save Button */}
           {editing && (
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-4">
               <Button
-                className="bg-black text-white hover:bg-[#E3BB76] hover:text-black"
+                className="bg-black text-white hover:bg-[#E3BB76] hover:text-black min-w-[160px]"
                 disabled={isLoading}
               >
-                {isLoading
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Update Product"
-                    : "Create Product"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isEditMode ? (
+                  "Update Product"
+                ) : (
+                  "Create Product"
+                )}
               </Button>
             </div>
           )}
         </form>
       </Form>
+    </div>
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THIS SPECIFIC FORM
+// ==========================================
+export function ProductFormSkeleton() {
+  return (
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white p-2">
+      {/* HEADER SKELETON */}
+      <div className="flex items-center justify-between mb-10">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-9 w-9" /> {/* Icon button */}
+      </div>
+
+      <div className="space-y-6">
+        {/* NAME */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+
+        {/* CODE */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+
+        {/* DESCRIPTION */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-[104px] w-full" /> {/* Textarea height */}
+        </div>
+
+        {/* CATEGORY / STYLE / TYPE GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full pt-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="w-full space-y-2">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-11 w-full" />
+            </div>
+          ))}
+        </div>
+
+        {/* BUTTON */}
+        <div className="flex justify-end pt-4">
+          <Skeleton className="h-10 w-[160px] rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }

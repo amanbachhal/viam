@@ -13,6 +13,8 @@ import {
   ChevronRight,
   EyeIcon,
   Plus,
+  RotateCcw,
+  Loader2, // <-- Added Loader2
 } from "lucide-react";
 
 import {
@@ -48,10 +50,9 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-import { RotateCcw } from "lucide-react";
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { TableRowSkeletons } from "../loaders/table-skeleton";
 
 interface Props {
   data: {
@@ -72,6 +73,15 @@ export default function DiscountTable({ data }: Props) {
   const [search, setSearch] = useState(currentSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(currentSearch);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // <-- 1. Loading States added
+  const [isFetching, setIsFetching] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // <-- Turn off skeleton instantly when the URL changes (server responds)
+  useEffect(() => {
+    setIsFetching(false);
+  }, [searchParams]);
 
   useEffect(() => setSearch(currentSearch), [currentSearch]);
 
@@ -98,11 +108,22 @@ export default function DiscountTable({ data }: Props) {
 
     if (!("page" in updates)) params.set("page", "1");
 
-    router.push(`/admin/discount?${params.toString()}`);
+    // <-- Turn ON skeleton
+    setIsFetching(true);
+    router.push(`/admin/discount?${params.toString()}`, { scroll: false });
+  };
+
+  const resetAll = () => {
+    setSearch("");
+    setIsFetching(true);
+    router.push("/admin/discount", { scroll: false });
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
+
+    // <-- Turn on delete spinner
+    setIsDeleting(true);
 
     try {
       const res = await deleteDiscount(deleteId);
@@ -112,6 +133,7 @@ export default function DiscountTable({ data }: Props) {
     } catch (err: any) {
       toast.error(err.message || "Delete failed");
     } finally {
+      setIsDeleting(false);
       setDeleteId(null);
     }
   };
@@ -135,6 +157,7 @@ export default function DiscountTable({ data }: Props) {
               <Input
                 placeholder="Search..."
                 value={search}
+                disabled={isFetching}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 pr-8 w-[220px]"
               />
@@ -150,6 +173,7 @@ export default function DiscountTable({ data }: Props) {
             {/* TYPE FILTER */}
             <Select
               value={searchParams.get("type") || "All"}
+              disabled={isFetching}
               onValueChange={(v) => updateQuery({ type: v })}
             >
               <SelectTrigger className="w-[150px]">
@@ -169,6 +193,7 @@ export default function DiscountTable({ data }: Props) {
             {/* STATUS FILTER */}
             <Select
               value={searchParams.get("status") || "All"}
+              disabled={isFetching}
               onValueChange={(v) => updateQuery({ status: v })}
             >
               <SelectTrigger className="w-[150px]">
@@ -184,7 +209,8 @@ export default function DiscountTable({ data }: Props) {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push("/admin/discount")}
+              disabled={isFetching}
+              onClick={resetAll}
             >
               <RotateCcw size={14} />
             </Button>
@@ -218,6 +244,7 @@ export default function DiscountTable({ data }: Props) {
                 <Input
                   placeholder="Search..."
                   value={search}
+                  disabled={isFetching}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 pr-8 w-full"
                 />
@@ -233,6 +260,7 @@ export default function DiscountTable({ data }: Props) {
               {/* Type */}
               <Select
                 value={searchParams.get("type") || "All"}
+                disabled={isFetching}
                 onValueChange={(v) => updateQuery({ type: v })}
               >
                 <SelectTrigger className="w-full">
@@ -252,6 +280,7 @@ export default function DiscountTable({ data }: Props) {
               {/* Status */}
               <Select
                 value={searchParams.get("status") || "All"}
+                disabled={isFetching}
                 onValueChange={(v) => updateQuery({ status: v })}
               >
                 <SelectTrigger className="w-full">
@@ -267,7 +296,8 @@ export default function DiscountTable({ data }: Props) {
               <div className="flex items-center justify-between pt-2">
                 <Button
                   variant="outline"
-                  onClick={() => router.push("/admin/discount")}
+                  disabled={isFetching}
+                  onClick={resetAll}
                 >
                   Reset
                 </Button>
@@ -290,7 +320,7 @@ export default function DiscountTable({ data }: Props) {
       <div className="flex-1 border rounded-xl overflow-hidden bg-white flex flex-col">
         <div className="flex-1 overflow-y-auto">
           <Table>
-            <TableHeader className="sticky top-0 bg-white border-b">
+            <TableHeader className="sticky top-0 bg-white border-b z-20">
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Value</TableHead>
@@ -303,9 +333,12 @@ export default function DiscountTable({ data }: Props) {
             </TableHeader>
 
             <TableBody>
-              {data.discounts.length === 0 ? (
+              {/* <-- TRIGGER SKELETON MAGIC HERE */}
+              {isFetching ? (
+                <TableRowSkeletons columns={7} />
+              ) : data.discounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-16">
+                  <TableCell colSpan={7} className="text-center py-16">
                     No discounts found
                   </TableCell>
                 </TableRow>
@@ -365,11 +398,11 @@ export default function DiscountTable({ data }: Props) {
 
       {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex justify-end mt-4 gap-2">
+        <div className="flex justify-end mt-4 gap-2 border-t pt-4">
           <Button
             size="icon"
             variant="outline"
-            disabled={currentPage <= 1}
+            disabled={currentPage <= 1 || isFetching}
             onClick={() => updateQuery({ page: String(currentPage - 1) })}
           >
             <ChevronLeft size={16} />
@@ -378,7 +411,7 @@ export default function DiscountTable({ data }: Props) {
           <Button
             size="icon"
             variant="outline"
-            disabled={currentPage >= totalPages}
+            disabled={currentPage >= totalPages || isFetching}
             onClick={() => updateQuery({ page: String(currentPage + 1) })}
           >
             <ChevronRight size={16} />
@@ -393,9 +426,17 @@ export default function DiscountTable({ data }: Props) {
             <AlertDialogTitle>Delete this discount?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 w-[80px] flex justify-center"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

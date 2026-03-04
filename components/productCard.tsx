@@ -1,8 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -76,12 +76,10 @@ export function ProductCard({ product }: Props) {
 
           {/* CONTENT */}
           <div className="flex flex-col flex-1 p-4 space-y-3">
-            {/* NAME */}
-            <h3 className=" font-medium leading-snug line-clamp-2 text-stone-800">
+            <h3 className="font-medium leading-snug line-clamp-2 text-stone-800">
               {product.name}
             </h3>
 
-            {/* PRICE SECTION */}
             <div className="flex items-center gap-2">
               {hasProductDiscount ? (
                 <>
@@ -116,19 +114,28 @@ export function ProductCard({ product }: Props) {
                   </span>
                 ))}
             </div>
-
-            {/* CTA
-            <div className="mt-auto pt-3">
-              <Button
-                variant="outline"
-                className="w-full rounded-full border-stone-300 hover:bg-black hover:text-white transition-all duration-300"
-              >
-                View Details
-              </Button>
-            </div> */}
           </div>
         </Card>
       </Link>
     </motion.div>
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THE CARD
+// ==========================================
+export function ProductCardSkeleton() {
+  return (
+    <div className="flex flex-col h-full overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm p-0 gap-0">
+      <Skeleton className="w-full aspect-[3/4] rounded-none bg-stone-200" />
+      <div className="flex flex-col flex-1 p-4 space-y-3">
+        <Skeleton className="h-5 w-3/4 bg-stone-200" />
+        <Skeleton className="h-5 w-1/3 bg-stone-200" />
+        <div className="flex gap-2 pt-1">
+          <Skeleton className="h-5 w-16 rounded-full bg-stone-200" />
+          <Skeleton className="h-5 w-16 rounded-full bg-stone-200" />
+        </div>
+      </div>
+    </div>
   );
 }

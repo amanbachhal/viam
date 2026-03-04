@@ -6,12 +6,13 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { masterFormSchema } from "@/schemas/master.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Loader2 } from "lucide-react"; // <-- Added Loader2
 import { useTransition } from "react";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Input } from "../ui/input";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 
 type MasterFormValues = z.infer<typeof masterFormSchema>;
 
@@ -22,7 +23,7 @@ const MasterSection = ({
   title,
   description,
 }: {
-  form: UseFormReturn<MasterFormValues>; // Strongly typed instead of 'any'
+  form: UseFormReturn<MasterFormValues>;
   name: "categories" | "styles" | "types";
   title: string;
   description: string;
@@ -82,7 +83,6 @@ const MasterSection = ({
                       <Input
                         type="number"
                         className="h-9 border-0 focus-visible:ring-1 text-center bg-transparent w-full sm:w-[80px]"
-                        // Extract standard props and override onChange to ensure it passes a Number
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
@@ -140,7 +140,7 @@ export default function MasterForm({ initialData }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<MasterFormValues>({
-    resolver: zodResolver(masterFormSchema) as any, // Cast to any to bypass Zod input/output mismatch
+    resolver: zodResolver(masterFormSchema) as any,
     defaultValues: {
       categories: initialData?.categories || [],
       styles: initialData?.styles || [],
@@ -162,7 +162,7 @@ export default function MasterForm({ initialData }: Props) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar">
+    <div className="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar relative">
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
@@ -196,11 +196,76 @@ export default function MasterForm({ initialData }: Props) {
               disabled={isPending}
               className="bg-black text-white hover:bg-[#E3BB76] hover:text-black min-w-[160px]"
             >
-              {isPending ? "Saving..." : "Save Changes"}
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </div>
         </form>
       </Form>
+    </div>
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THIS SPECIFIC FORM
+// ==========================================
+export function MasterFormSkeleton() {
+  const skeletonSections = [
+    { title: "Categories", desc: "Manage product categories." },
+    { title: "Styles", desc: "Manage design styles." },
+    { title: "Types", desc: "Manage product types." },
+  ];
+
+  return (
+    <div className="flex-1 overflow-y-auto mt-6 pr-2 custom-scrollbar">
+      <div className="space-y-10 relative">
+        {skeletonSections.map((section, idx) => (
+          <div
+            key={idx}
+            className="space-y-4 rounded-xl border p-6 bg-neutral-50/50"
+          >
+            {/* Header */}
+            <div>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+
+            <div className="space-y-3 pt-2">
+              {/* Mock Rows */}
+              {[1, 2].map((row) => (
+                <div
+                  key={row}
+                  className="grid gap-3 bg-white p-3 rounded-lg border shadow-sm grid-cols-1 sm:grid-cols-[1fr_80px_60px_40px] items-center"
+                >
+                  <Skeleton className="h-9 w-full" /> {/* Name */}
+                  <div className="grid grid-cols-[1fr_auto] gap-3 items-center sm:contents">
+                    <Skeleton className="h-9 w-full sm:w-[80px]" />{" "}
+                    {/* Order */}
+                    <div className="flex justify-center">
+                      <Skeleton className="h-5 w-9 rounded-full" />{" "}
+                      {/* Switch */}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Button Skeleton */}
+              <Skeleton className="h-9 w-full mt-2" />
+            </div>
+          </div>
+        ))}
+
+        {/* Sticky Save Button Skeleton */}
+        <div className="flex justify-end pt-6 border-t sticky bottom-0 bg-white/95 backdrop-blur-sm py-4 z-10">
+          <Skeleton className="h-10 w-[160px] rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LockIcon, Pencil } from "lucide-react";
+import { LockIcon, Pencil, Loader2 } from "lucide-react"; // <-- Added Loader2
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -39,6 +39,7 @@ import {
 
 import { createDiscount, updateDiscount } from "@/actions/discount.actions";
 import { discountSchema } from "@/schemas/discount.schema";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 
 type FormType = z.infer<typeof discountSchema>;
 
@@ -110,7 +111,7 @@ export default function DiscountForm({
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white">
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white p-2">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
@@ -305,8 +306,17 @@ export default function DiscountForm({
 
           {editing && (
             <div className="flex justify-end">
-              <Button disabled={isPending}>
-                {isPending ? "Saving..." : isEditMode ? "Update" : "Create"}
+              <Button disabled={isPending} className="w-[120px]">
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isEditMode ? (
+                  "Update"
+                ) : (
+                  "Create"
+                )}
               </Button>
             </div>
           )}
@@ -334,7 +344,6 @@ function MultiSelect({
       control={form.control}
       name={name}
       render={({ field }) => {
-        // 👇 Build display label (name OR name - code)
         const buildLabel = (item: any) =>
           item.code ? `${item.name} - ${item.code}` : item.name;
 
@@ -356,7 +365,6 @@ function MultiSelect({
 
             <FormControl>
               <div className="space-y-2">
-                {/* Combobox */}
                 <Combobox
                   items={[...labelToId.keys()]}
                   value=""
@@ -391,7 +399,6 @@ function MultiSelect({
                   </ComboboxContent>
                 </Combobox>
 
-                {/* Selected Chips */}
                 {selectedLabels.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {selectedLabels.map((labelText: string) => {
@@ -423,11 +430,63 @@ function MultiSelect({
                 )}
               </div>
             </FormControl>
-
             <FormMessage />
           </FormItem>
         );
       }}
     />
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THIS SPECIFIC FORM
+// ==========================================
+export function DiscountFormSkeleton() {
+  return (
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white p-2">
+      {/* HEADER SKELETON */}
+      <div className="flex items-center justify-between mb-10">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-9 w-9" /> {/* Icon button */}
+      </div>
+
+      <div className="space-y-6">
+        {/* NAME */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+
+        {/* VALUE */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+
+        {/* DATE RANGE */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+
+        {/* APPLY TO */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+
+        {/* ACTIVE SWITCH */}
+        <div className="flex items-center gap-4 pt-4">
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-6 w-10 rounded-full" />
+        </div>
+      </div>
+    </div>
   );
 }

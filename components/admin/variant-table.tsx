@@ -14,6 +14,7 @@ import {
   RotateCcw,
   EyeIcon,
   Plus,
+  Loader2,
 } from "lucide-react";
 import {
   Accordion,
@@ -60,6 +61,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { TableRowSkeletons } from "../loaders/table-skeleton";
 
 interface Props {
   data: {
@@ -88,6 +90,15 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
   const [search, setSearch] = useState(currentSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(currentSearch);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // New Loading States
+  const [isFetching, setIsFetching] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Turn off skeleton instantly when the URL changes (server responds)
+  useEffect(() => {
+    setIsFetching(false);
+  }, [searchParams]);
 
   useEffect(() => setSearch(currentSearch), [currentSearch]);
 
@@ -119,16 +130,20 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
       params.set("page", "1");
     }
 
-    router.push(`/admin/variants?${params.toString()}`);
+    // Turn ON skeleton
+    setIsFetching(true);
+    router.push(`/admin/variants?${params.toString()}`, { scroll: false });
   };
 
   const resetAll = () => {
     setSearch("");
-    router.push("/admin/variants");
+    setIsFetching(true);
+    router.push("/admin/variants", { scroll: false });
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    setIsDeleting(true);
     try {
       const res = await deleteVariant(deleteId);
       if (!res?.success) throw new Error(res?.message);
@@ -137,6 +152,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
     } catch (err: any) {
       toast.error(err?.message || "Delete failed");
     } finally {
+      setIsDeleting(false);
       setDeleteId(null);
     }
   };
@@ -155,6 +171,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
           size="sm"
           variant={i === currentPage ? "default" : "outline"}
           className="w-9 h-9 p-0"
+          disabled={isFetching}
           onClick={() => updateQuery({ page: String(i) })}
         >
           {i}
@@ -185,6 +202,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
               <Input
                 placeholder="Search..."
                 value={search}
+                disabled={isFetching}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 pr-8 w-[200px]"
               />
@@ -226,6 +244,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
                       placeholder="Filter by product..."
                       showTrigger
                       showClear
+                      disabled={isFetching}
                     />
                     <ComboboxContent>
                       <ComboboxEmpty>No product found.</ComboboxEmpty>
@@ -254,6 +273,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
             ].map((filter) => (
               <Select
                 key={filter.key}
+                disabled={isFetching}
                 value={searchParams.get(filter.key) || "All"}
                 onValueChange={(v) => updateQuery({ [filter.key]: v })}
               >
@@ -274,6 +294,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
             {/* Stock */}
             <Select
               value={currentStock}
+              disabled={isFetching}
               onValueChange={(v) => updateQuery({ in_stock: v })}
             >
               <SelectTrigger className="w-[130px]">
@@ -286,7 +307,12 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" size="icon" onClick={resetAll}>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={isFetching}
+              onClick={resetAll}
+            >
               <RotateCcw size={14} />
             </Button>
           </div>
@@ -320,6 +346,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
                 <Input
                   placeholder="Search..."
                   value={search}
+                  disabled={isFetching}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 pr-8 w-full"
                 />
@@ -363,6 +390,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
                         placeholder="Filter by product..."
                         showTrigger
                         showClear
+                        disabled={isFetching}
                       />
                       <ComboboxContent>
                         <ComboboxEmpty>No product found.</ComboboxEmpty>
@@ -395,6 +423,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
               ].map((filter) => (
                 <Select
                   key={filter.key}
+                  disabled={isFetching}
                   value={searchParams.get(filter.key) || "All"}
                   onValueChange={(v) => updateQuery({ [filter.key]: v })}
                 >
@@ -415,6 +444,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
               {/* Stock */}
               <Select
                 value={currentStock}
+                disabled={isFetching}
                 onValueChange={(v) => updateQuery({ in_stock: v })}
               >
                 <SelectTrigger className="w-full">
@@ -428,7 +458,11 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
               </Select>
 
               <div className="flex items-center justify-between pt-2">
-                <Button variant="outline" onClick={resetAll}>
+                <Button
+                  variant="outline"
+                  disabled={isFetching}
+                  onClick={resetAll}
+                >
                   Reset
                 </Button>
 
@@ -465,10 +499,14 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
             </TableHeader>
 
             <TableBody>
-              {data.variants.length === 0 ? (
+              {/* TRIGGER SKELETON MAGIC HERE */}
+              {isFetching ? (
+                <TableRowSkeletons />
+              ) : data.variants.length === 0 ? (
                 <TableRow>
+                  {/* Updated colSpan from 7 to 9 to span all columns */}
                   <TableCell
-                    colSpan={7}
+                    colSpan={9}
                     className="text-center py-16 text-muted-foreground"
                   >
                     No variants found
@@ -573,7 +611,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
             <Button
               size="icon"
               variant="outline"
-              disabled={currentPage <= 1}
+              disabled={currentPage <= 1 || isFetching}
               onClick={() => updateQuery({ page: String(currentPage - 1) })}
             >
               <ChevronLeft size={16} />
@@ -582,7 +620,7 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
             <Button
               size="icon"
               variant="outline"
-              disabled={currentPage >= totalPages}
+              disabled={currentPage >= totalPages || isFetching}
               onClick={() => updateQuery({ page: String(currentPage + 1) })}
             >
               <ChevronRight size={16} />
@@ -600,9 +638,17 @@ export default function VariantTable({ data, products, filterOptions }: Props) {
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 w-[80px] flex justify-center"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

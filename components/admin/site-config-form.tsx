@@ -21,7 +21,7 @@ import { DEFAULT_LOGOS } from "@/lib/default-logos";
 import { THEME_TEMPLATES, type ThemeTemplateKey } from "@/lib/theme-templates";
 import { siteConfigSchema } from "@/schemas/site-config.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RotateCcw, Trash2, Upload } from "lucide-react";
+import { RotateCcw, Trash2, Upload, Loader2 } from "lucide-react"; // <-- Added Loader2
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import type { SiteConfigFormValues } from "@/schemas/site-config.schema";
 import { Switch } from "../ui/switch";
 import { AmbientMode } from "../ambient-background";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 
 interface Props {
   config?: any;
@@ -63,7 +64,6 @@ const colorFields: { name: ColorFieldKeys; label: string }[] = [
   { name: "footer_bg", label: "Footer" },
   { name: "cta_bg", label: "CTA Background" },
   { name: "cta_font_color", label: "CTA Text" },
-  // { name: "menu_option_font_color", label: "Menu Option Text" },
   { name: "footer_font_color", label: "Footer Text" },
   { name: "hero_bg", label: "Hero Background" },
   { name: "hero_font_color", label: "Hero Text" },
@@ -367,103 +367,11 @@ export default function SiteConfigForm({ config }: Props) {
                           </div>
                         );
                       })}
-
-                      {/* {newLogos.map((logo, i) => {
-                        const isSelected =
-                          form.watch("selected_logo") === logo.preview;
-
-                        return (
-                          <div
-                            key={`new-${i}`}
-                            className="flex flex-col items-center gap-2 w-[140px]"
-                          >
-                            <div
-                              className={`flex items-center justify-center border rounded-xl p-4 cursor-pointer transition w-full ${
-                                isSelected
-                                  ? "border-green-600 ring-2 ring-green-500"
-                                  : ""
-                              }`}
-                              style={{ background: headerBg || "#0c0c0c" }}
-                              onClick={() =>
-                                form.setValue("selected_logo", logo.preview)
-                              }
-                            >
-                              <Image
-                                src={logo.preview}
-                                alt={logo.name}
-                                width={120}
-                                height={40}
-                                className="h-10 w-auto object-contain"
-                                unoptimized
-                              />
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {isSelected && (
-                                <div className="text-green-600 font-bold text-sm">
-                                  ✓
-                                </div>
-                              )}
-                              <p className="text-xs">{logo.name}</p>
-
-                              <button
-                                type="button"
-                                onClick={() => removeNewLogo(i)}
-                                className="text-red-500 hover:text-red-600"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })} */}
                     </div>
                   </FormItem>
                 );
               }}
             />
-
-            {/* <div className="flex gap-3 items-end">
-              <Input
-                placeholder="Logo name"
-                id="logo-name"
-                className="max-w-xs"
-              />
-
-              <input
-                id="logo-file"
-                type="file"
-                hidden
-                accept="image/webp"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  const nameInput = document.getElementById(
-                    "logo-name",
-                  ) as HTMLInputElement;
-
-                  if (!file) return;
-
-                  if (!nameInput?.value) {
-                    toast.error("Enter logo name first");
-                    return;
-                  }
-
-                  handleAddLogo(file, nameInput.value);
-
-                  nameInput.value = "";
-                  e.target.value = "";
-                }}
-              />
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById("logo-file")?.click()}
-              >
-                <Upload size={16} className="mr-2" />
-                Add Logo
-              </Button>
-            </div> */}
           </div>
 
           {/* COLORS */}
@@ -684,11 +592,123 @@ export default function SiteConfigForm({ config }: Props) {
           {/* SAVE */}
           <div className="flex justify-end pt-6 border-t">
             <Button disabled={isPending} className="min-w-[160px]">
-              {isPending ? "Saving..." : "Save Changes"}
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </div>
         </form>
       </Form>
+    </div>
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THIS SPECIFIC FORM
+// ==========================================
+export function SiteConfigFormSkeleton() {
+  return (
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white py-10 space-y-10">
+      {/* TEMPLATE & ANIMATION */}
+      <div className="flex flex-col sm:flex-row gap-6 w-full">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-full max-w-sm" />
+        </div>
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+
+      {/* BRAND LOGO */}
+      <div className="space-y-6">
+        <Skeleton className="h-6 w-32" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24 mb-4" />
+          <div className="flex flex-wrap gap-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-2 w-[140px]"
+              >
+                <Skeleton className="h-[74px] w-full rounded-xl" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* COLORS */}
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-24" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* BANNER SETTINGS */}
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-[74px] w-[260px] rounded-lg" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-full max-w-md" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+        </div>
+      </div>
+
+      {/* HERO TEXT */}
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-28" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-full max-w-md" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-full max-w-md" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+        </div>
+      </div>
+
+      {/* HERO IMAGES */}
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-32" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-3xl">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border rounded-lg overflow-hidden">
+              <Skeleton className="aspect-[4/5] w-full rounded-none" />
+              <div className="p-4">
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SAVE BUTTON */}
+      <div className="flex justify-end pt-6 border-t">
+        <Skeleton className="h-10 w-[160px] rounded-md" />
+      </div>
     </div>
   );
 }

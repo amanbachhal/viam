@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { ProductFilters } from "./productFilters";
-import { ProductCard } from "./productCard";
+import { ProductCard, ProductCardSkeleton } from "./productCard"; // <-- Import Skeleton
 import { Button } from "@/components/ui/button";
 import { getStoreProducts } from "@/actions/store.actions";
 import { StoreProduct, StoreProductsResponse } from "@/types/product";
 import { AmbientBackground } from "./ambient-background";
 import { useSiteConfig } from "./providers/site-config-provider";
+import { Loader2 } from "lucide-react"; // <-- Import Loader
 
 interface Props {
   initialProducts: StoreProductsResponse;
@@ -24,9 +25,10 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
   );
   const [page, setPage] = useState(initialProducts.page);
   const [hasMore, setHasMore] = useState(initialProducts.hasMore);
-  const [loading, setLoading] = useState(false);
 
-  // These will now hold ObjectIds (strings) instead of display names
+  const [loading, setLoading] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false); // <-- Track if we are filtering vs paginating
+
   const [category, setCategory] = useState("All");
   const [style, setStyle] = useState("All");
   const [type, setType] = useState("All");
@@ -42,6 +44,7 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
   }, [search, category, style, type]);
 
   async function fetchProducts(reset = false) {
+    if (reset) setIsFiltering(true);
     setLoading(true);
     const nextPage = reset ? 1 : page + 1;
 
@@ -55,6 +58,7 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
 
     if (!res?.success) {
       setLoading(false);
+      setIsFiltering(false);
       return;
     }
 
@@ -68,10 +72,11 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
 
     setHasMore(res.hasMore);
     setLoading(false);
+    setIsFiltering(false);
   }
 
   return (
-    <section className="relative w-full px-6 py-20 bg-white">
+    <section className="relative w-full px-6 py-20 bg-white min-h-[80vh]">
       <AmbientBackground mode={config.animation || "off"} />
 
       <div className="relative z-10 max-w-7xl mx-auto">
@@ -88,7 +93,14 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
             onSearchChange={setSearch}
           />
 
-          {products.length > 0 ? (
+          {/* IF FILTERING, SHOW SKELETON GRID */}
+          {isFiltering ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : products.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {products.map((product) => (
@@ -103,6 +115,9 @@ export function CollectionSection({ initialProducts, filterOptions }: Props) {
                     disabled={loading}
                     className="px-10 rounded-full bg-black text-white hover:bg-[#E3BB76] hover:text-black transition-colors"
                   >
+                    {loading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {loading ? "Loading..." : "Load More"}
                   </Button>
                 </div>

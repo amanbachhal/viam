@@ -1,5 +1,6 @@
 import AdminSidebar from "@/components/sidebar";
 import { Cormorant_Garamond, Inter } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import "../../globals.css";
 
 const bodyFont = Inter({
@@ -23,10 +24,16 @@ export default function RootLayout({
       <body
         className={`${bodyFont.variable} ${headingFont.variable} antialiased`}
       >
+        <NextTopLoader
+          color="#D4AF37"
+          showSpinner={false}
+          height={5}
+          shadow="0 0 10px #D4AF37, 0 0 5px #D4AF37"
+        />
+
         <div className="flex min-h-screen relative">
           <AdminSidebar />
 
-          {/* Added pt-16 on mobile to make room for the floating hamburger button */}
           <main className="flex-1 bg-stone-400 p-4 pt-16 md:p-6 h-screen overflow-hidden">
             {children}
           </main>

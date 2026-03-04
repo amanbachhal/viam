@@ -9,6 +9,7 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import { useSiteConfig } from "./providers/site-config-provider";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Hero() {
   const config = useSiteConfig();
@@ -100,6 +101,30 @@ export function Hero() {
             {config?.hero_subtitle ||
               "A curated collection of refined pieces created for timeless elegance."}
           </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function HeroSkeleton() {
+  return (
+    <section className="w-full bg-stone-300 px-6 py-16 md:py-24 animate-pulse">
+      <div className="max-w-7xl mx-auto">
+        <div className="hidden lg:grid grid-cols-3 gap-10">
+          {[1, 2, 3].map((i) => (
+            <Skeleton
+              key={i}
+              className="w-full aspect-[3/4] rounded-3xl bg-white/20"
+            />
+          ))}
+        </div>
+        <div className="lg:hidden">
+          <Skeleton className="w-full aspect-[4/5] rounded-3xl bg-white/20" />
+        </div>
+        <div className="mt-16 md:mt-24 lg:mt-28 text-center max-w-3xl mx-auto flex flex-col items-center">
+          <Skeleton className="h-14 w-3/4 mb-6 bg-white/30" />
+          <Skeleton className="h-6 w-5/6 bg-white/20" />
         </div>
       </div>
     </section>

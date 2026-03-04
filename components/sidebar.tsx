@@ -5,10 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { useState, useEffect, useTransition } from "react"; // <-- Added useTransition
+import { Menu, X, Loader2 } from "lucide-react"; // <-- Added Loader2
 import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/actions/auth.actions";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 
 export default function AdminSidebar() {
   const path = usePathname();
@@ -112,21 +113,64 @@ export default function AdminSidebar() {
 
 export function LogoutButton() {
   const router = useRouter();
+  // <-- 1. Added useTransition for the logout action
+  const [isPending, startTransition] = useTransition();
 
-  const logout = async () => {
-    try {
-      await logoutAdmin();
+  const logout = () => {
+    // <-- 2. Wrap the async call in startTransition
+    startTransition(async () => {
+      try {
+        await logoutAdmin();
 
-      toast.success("Logged out");
-      router.push("/admin/login");
-    } catch (error) {
-      toast.error("Failed to logout");
-    }
+        toast.success("Logged out");
+        router.push("/admin/login");
+      } catch (error) {
+        toast.error("Failed to logout");
+      }
+    });
   };
 
   return (
-    <Button variant="destructive" className="w-full" onClick={logout}>
-      Logout
+    // <-- 3. Add disabled state and Loader2
+    <Button
+      variant="destructive"
+      className="w-full"
+      onClick={logout}
+      disabled={isPending}
+    >
+      {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+      {isPending ? "Logging out..." : "Logout"}
     </Button>
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THE SIDEBAR
+// ==========================================
+export function AdminSidebarSkeleton() {
+  return (
+    <aside className="bg-stone-950 text-white flex-col justify-between p-6 z-50 hidden md:flex md:relative md:w-64 md:h-auto min-h-screen">
+      <div className="space-y-10">
+        {/* LOGO SKELETON */}
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-[170px] bg-white/20 rounded-md" />
+        </div>
+
+        {/* NAV LINKS SKELETON */}
+        <nav className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton
+              key={i}
+              className="h-[48px] w-full bg-white/10 rounded-lg"
+            />
+          ))}
+        </nav>
+      </div>
+
+      {/* LOGOUT BUTTON SKELETON */}
+      <div className="mt-auto pt-10">
+        <Skeleton className="h-10 w-full bg-red-900/40 rounded-md" />
+      </div>
+    </aside>
   );
 }

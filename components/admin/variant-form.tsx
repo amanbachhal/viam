@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LockIcon, Pencil, Trash2 } from "lucide-react";
+import { LockIcon, Pencil, Trash2, Loader2 } from "lucide-react"; // <-- Added Loader2
 
 import {
   Form,
@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton"; // <-- Added Skeleton
 
 import {
   createVariant,
@@ -124,7 +125,7 @@ export default function VariantForm({ products = [], variant }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white ">
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white p-2">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-black">
@@ -313,6 +314,7 @@ export default function VariantForm({ products = [], variant }: Props) {
                   key={url}
                   src={url}
                   className="w-24 h-24 object-cover rounded-md border"
+                  alt="Variant Image"
                 />
               ))}
             </div>
@@ -339,18 +341,81 @@ export default function VariantForm({ products = [], variant }: Props) {
             <div className="flex justify-end gap-3">
               <Button
                 disabled={isPending}
-                className="bg-black text-white hover:bg-[#E3BB76] hover:text-black"
+                className="bg-black text-white hover:bg-[#E3BB76] hover:text-black min-w-[160px]"
               >
-                {isPending
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Update Variant"
-                    : "Create Variant"}
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : isEditMode ? (
+                  "Update Variant"
+                ) : (
+                  "Create Variant"
+                )}
               </Button>
             </div>
           )}
         </form>
       </Form>
+    </div>
+  );
+}
+
+// ==========================================
+// EXPORTED SKELETON FOR THIS SPECIFIC FORM
+// ==========================================
+export function VariantFormSkeleton() {
+  return (
+    <div className="h-[calc(100vh-140px)] overflow-y-auto bg-white p-2">
+      {/* HEADER SKELETON */}
+      <div className="flex items-center justify-between mb-10">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-9 w-9" /> {/* Icon button */}
+      </div>
+
+      <div className="space-y-6">
+        {/* PRODUCT */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+
+        {/* VARIANT CODE */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+
+        {/* NAME */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+
+        {/* PRICE */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+
+        {/* IN STOCK SWITCH */}
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-6 w-10 rounded-full" />
+        </div>
+
+        {/* IMAGES AREA */}
+        <div className="space-y-2 pt-4">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-[200px] w-full rounded-xl border-dashed" />
+        </div>
+
+        {/* BUTTON */}
+        <div className="flex justify-end pt-4">
+          <Skeleton className="h-10 w-[160px] rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }

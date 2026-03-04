@@ -1,7 +1,7 @@
 "use client";
 
 import { AmbientBackground } from "@/components/ambient-background";
-import { ProductCard } from "@/components/productCard";
+import { ProductCard, ProductCardSkeleton } from "@/components/productCard";
 import { useSiteConfig } from "@/components/providers/site-config-provider";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProductClient({
   product,
@@ -336,6 +337,66 @@ export default function ProductClient({
               </div>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ProductClientSkeleton() {
+  return (
+    <div className="relative w-full px-6 py-20 bg-white overflow-hidden">
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto">
+          <Skeleton className="h-4 w-32 mb-8" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 mb-20">
+            {/* LEFT: Gallery Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
+              <div className="flex gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className="w-24 shrink-0 aspect-square rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT: Details Skeleton */}
+            <div className="flex flex-col space-y-8 lg:sticky lg:top-24 self-start w-full">
+              <div className="space-y-4 w-full">
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-12 w-3/4" />
+                <Skeleton className="h-8 w-1/4" />
+              </div>
+
+              <div className="space-y-3 pt-4 border-t w-full">
+                <Skeleton className="h-4 w-24" />
+                <div className="flex flex-wrap gap-3">
+                  <Skeleton className="h-[60px] w-32 rounded-xl" />
+                  <Skeleton className="h-[60px] w-32 rounded-xl" />
+                </div>
+              </div>
+
+              <Skeleton className="h-[120px] w-full rounded-xl" />
+              <Skeleton className="h-[56px] w-full rounded-xl" />
+            </div>
+          </div>
+
+          {/* RELATED PRODUCTS SKELETON */}
+          <div className="border-t border-stone-200 pt-16">
+            <Skeleton className="h-8 w-48 mb-10" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[1, 2, 3, 4].map((i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ import {
   ChevronRight,
   RotateCcw,
   EyeIcon,
+  Loader2, // <-- Added Loader2
 } from "lucide-react";
 
 import {
@@ -51,6 +52,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { TableRowSkeletons } from "../loaders/table-skeleton";
 
 export default function ProductTable({ data, filterOptions }: any) {
   const router = useRouter();
@@ -62,6 +64,15 @@ export default function ProductTable({ data, filterOptions }: any) {
   const [search, setSearch] = useState(currentSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(currentSearch);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // <-- 1. Loading States added
+  const [isFetching, setIsFetching] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // <-- Turn off skeleton instantly when the URL changes (server responds)
+  useEffect(() => {
+    setIsFetching(false);
+  }, [searchParams]);
 
   useEffect(() => {
     setSearch(currentSearch);
@@ -95,16 +106,23 @@ export default function ProductTable({ data, filterOptions }: any) {
       params.set("page", "1");
     }
 
-    router.push(`/admin/products?${params.toString()}`);
+    // <-- Turn ON skeleton
+    setIsFetching(true);
+    router.push(`/admin/products?${params.toString()}`, { scroll: false });
   };
 
   const resetAll = () => {
     setSearch("");
-    router.push("/admin/products");
+    setIsFetching(true);
+    router.push("/admin/products", { scroll: false });
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
+
+    // <-- Turn on delete spinner
+    setIsDeleting(true);
+
     try {
       const res = await deleteProduct(deleteId);
       if (!res?.success) throw new Error(res?.message);
@@ -113,6 +131,7 @@ export default function ProductTable({ data, filterOptions }: any) {
     } catch (err: any) {
       toast.error(err?.message || "Delete failed");
     } finally {
+      setIsDeleting(false);
       setDeleteId(null);
     }
   };
@@ -131,6 +150,7 @@ export default function ProductTable({ data, filterOptions }: any) {
           size="sm"
           variant={i === currentPage ? "default" : "outline"}
           className="w-9 h-9 p-0"
+          disabled={isFetching}
           onClick={() => updateQuery({ page: String(i) })}
         >
           {i}
@@ -159,6 +179,7 @@ export default function ProductTable({ data, filterOptions }: any) {
               <Input
                 placeholder="Search name or code..."
                 value={search}
+                disabled={isFetching}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 pr-8 w-[240px]"
               />
@@ -187,6 +208,7 @@ export default function ProductTable({ data, filterOptions }: any) {
               <Select
                 key={filter.key}
                 value={searchParams.get(filter.key) || "All"}
+                disabled={isFetching}
                 onValueChange={(v) => updateQuery({ [filter.key]: v })}
               >
                 <SelectTrigger className="w-[160px]">
@@ -203,7 +225,12 @@ export default function ProductTable({ data, filterOptions }: any) {
               </Select>
             ))}
 
-            <Button variant="outline" size="icon" onClick={resetAll}>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={isFetching}
+              onClick={resetAll}
+            >
               <RotateCcw size={14} />
             </Button>
           </div>
@@ -237,6 +264,7 @@ export default function ProductTable({ data, filterOptions }: any) {
                 <Input
                   placeholder="Search name or code..."
                   value={search}
+                  disabled={isFetching}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 pr-8 w-full"
                 />
@@ -269,6 +297,7 @@ export default function ProductTable({ data, filterOptions }: any) {
                 <Select
                   key={filter.key}
                   value={searchParams.get(filter.key) || "All"}
+                  disabled={isFetching}
                   onValueChange={(v) => updateQuery({ [filter.key]: v })}
                 >
                   <SelectTrigger className="w-full">
@@ -286,7 +315,11 @@ export default function ProductTable({ data, filterOptions }: any) {
               ))}
 
               <div className="flex justify-between items-center pt-2">
-                <Button variant="outline" onClick={resetAll}>
+                <Button
+                  variant="outline"
+                  disabled={isFetching}
+                  onClick={resetAll}
+                >
                   Reset
                 </Button>
 
@@ -320,7 +353,10 @@ export default function ProductTable({ data, filterOptions }: any) {
             </TableHeader>
 
             <TableBody>
-              {data.products?.length === 0 ? (
+              {/* <-- TRIGGER SKELETON MAGIC HERE */}
+              {isFetching ? (
+                <TableRowSkeletons columns={6} />
+              ) : data.products?.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
@@ -387,7 +423,7 @@ export default function ProductTable({ data, filterOptions }: any) {
             <Button
               size="icon"
               variant="outline"
-              disabled={currentPage <= 1}
+              disabled={currentPage <= 1 || isFetching}
               onClick={() => updateQuery({ page: String(currentPage - 1) })}
             >
               <ChevronLeft size={16} />
@@ -396,7 +432,7 @@ export default function ProductTable({ data, filterOptions }: any) {
             <Button
               size="icon"
               variant="outline"
-              disabled={currentPage >= totalPages}
+              disabled={currentPage >= totalPages || isFetching}
               onClick={() => updateQuery({ page: String(currentPage + 1) })}
             >
               <ChevronRight size={16} />
@@ -411,9 +447,17 @@ export default function ProductTable({ data, filterOptions }: any) {
             <AlertDialogTitle>Delete Product?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 w-[80px] flex justify-center"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
