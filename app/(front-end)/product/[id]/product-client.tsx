@@ -13,9 +13,11 @@ import {
   Instagram,
   ShieldCheck,
   Truck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProductClient({
@@ -25,14 +27,12 @@ export default function ProductClient({
   product: any;
   related: any[];
 }) {
-  // 0. Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   const [copied, setCopied] = useState(false);
 
-  // 1. Auto-select the first in-stock variant (or the very first one if all are out of stock)
   const defaultVariant =
     product.variants?.find((v: any) => v.in_stock) || product.variants?.[0];
 
@@ -43,15 +43,93 @@ export default function ProductClient({
 
   const config = useSiteConfig();
 
-  // Update active image when a new variant is selected
+  /* ---------------- NEW GALLERY STATE ---------------- */
+
+  const images = selectedVariant?.images || [];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const [showThumbArrows, setShowThumbArrows] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
+
+  /* --------------------------------------------------- */
+
   useEffect(() => {
     if (selectedVariant?.images?.length > 0) {
       setActiveImage(selectedVariant.images[0]);
+      setCurrentIndex(0);
     }
   }, [selectedVariant]);
 
+  useEffect(() => {
+    const el = thumbRef.current;
+    if (!el) return;
+
+    const checkOverflow = () => {
+      setShowThumbArrows(el.scrollWidth > el.clientWidth);
+    };
+
+    checkOverflow();
+    window.addEventListener("resize", checkOverflow);
+
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, [images]);
+
+  const scrollThumbIntoView = (index: number) => {
+    const container = thumbRef.current;
+    if (!container) return;
+
+    const child = container.children[index] as HTMLElement;
+
+    child?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  };
+
+  const goNext = () => {
+    if (!images.length) return;
+
+    const next = (currentIndex + 1) % images.length;
+
+    setCurrentIndex(next);
+    setActiveImage(images[next]);
+
+    scrollThumbIntoView(next);
+  };
+
+  const goPrev = () => {
+    if (!images.length) return;
+
+    const prev = (currentIndex - 1 + images.length) % images.length;
+
+    setCurrentIndex(prev);
+    setActiveImage(images[prev]);
+
+    scrollThumbIntoView(prev);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goNext();
+      else goPrev();
+    }
+
+    touchStartX.current = null;
+  };
+
   const handleCopyCode = () => {
-    // Copy the specific variant code so you know exactly what they want!
     const codeToCopy = selectedVariant?.code || product.code;
     navigator.clipboard.writeText(codeToCopy);
     setCopied(true);
@@ -85,9 +163,12 @@ export default function ProductClient({
               animate={{ opacity: 1, x: 0 }}
               className="space-y-4"
             >
-              <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-white shadow-xl relative group">
+              <div
+                className="aspect-[3/4] overflow-hidden rounded-2xl bg-white shadow-xl relative group"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+              >
                 {activeImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={activeImage}
                     alt={selectedVariant?.name || product.name}
@@ -99,6 +180,25 @@ export default function ProductClient({
                   </div>
                 )}
 
+                {/* DESKTOP ARROWS */}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={goPrev}
+                      className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+
+                    <button
+                      onClick={goNext}
+                      className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </>
+                )}
+
                 {!isCurrentlyInStock && (
                   <div className="absolute top-4 right-4 bg-stone-900/90 backdrop-blur-sm text-white text-xs font-bold tracking-widest px-4 py-2 uppercase rounded-full shadow-lg">
                     Out of Stock
@@ -106,21 +206,40 @@ export default function ProductClient({
                 )}
               </div>
 
-              {/* Gallery Thumbnails for the SELECTED VARIANT */}
+              {/* MOBILE DOTS */}
+              {images.length > 1 && (
+                <div className="flex md:hidden justify-center gap-2">
+                  {images.map((_: any, i: number) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "h-2 w-2 rounded-full transition-all",
+                        currentIndex === i
+                          ? "bg-stone-900 w-4"
+                          : "bg-stone-300",
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Gallery Thumbnails */}
               {selectedVariant?.images?.length > 1 && (
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="hidden md:grid grid-cols-5 gap-4">
                   {selectedVariant.images.map((img: string, idx: number) => (
                     <button
                       key={idx}
-                      onClick={() => setActiveImage(img)}
+                      onClick={() => {
+                        setActiveImage(img);
+                        setCurrentIndex(idx);
+                      }}
                       className={cn(
-                        "relative w-24 shrink-0 aspect-square rounded-lg overflow-hidden border-2 transition-all",
-                        activeImage === img
-                          ? "border-stone-900"
+                        "relative aspect-square rounded-lg overflow-hidden border-4 transition-all",
+                        currentIndex === idx
+                          ? "border-[#E3BB76]"
                           : "border-transparent hover:border-stone-300",
                       )}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={img}
                         alt={`View ${idx + 1}`}
@@ -131,6 +250,8 @@ export default function ProductClient({
                 </div>
               )}
             </motion.div>
+
+            {/* ===== RIGHT SIDE UNCHANGED ===== */}
 
             {/* ===== RIGHT: DETAILS SECTION ===== */}
             <motion.div
