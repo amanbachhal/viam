@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -169,13 +170,18 @@ export default function ProductClient({
                 onTouchEnd={handleTouchEnd}
               >
                 {activeImage ? (
-                  <img
+                  <Image
                     src={activeImage}
-                    alt={selectedVariant?.name || product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    alt={
+                      selectedVariant?.name || product.name || "Product Image"
+                    }
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400">
+                  <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400 relative">
                     No image available
                   </div>
                 )}
@@ -240,10 +246,12 @@ export default function ProductClient({
                           : "border-transparent hover:border-stone-300",
                       )}
                     >
-                      <img
+                      <Image
                         src={img}
                         alt={`View ${idx + 1}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 20vw, 10vw"
+                        className="object-cover"
                       />
                     </button>
                   ))}
@@ -326,12 +334,13 @@ export default function ProductClient({
                         )}
                       >
                         {variant.images?.[0] && (
-                          <div className="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-stone-100 flex items-center justify-center">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                          <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 bg-stone-100 flex items-center justify-center">
+                            <Image
                               src={variant.images?.[0] || "/placeholder.webp"}
-                              alt={variant.name}
-                              className="w-full h-full object-cover"
+                              alt={variant.name || "Variant image"}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
                             />
                           </div>
                         )}

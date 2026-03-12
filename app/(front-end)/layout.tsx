@@ -18,55 +18,59 @@ const headingFont = Cormorant_Garamond({
   variable: "--font-serif",
 });
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.viamjewels.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
   title: {
-    default: "Viam Jewels — Elegant Anti-Tarnish & Designer Jewelry",
+    default: "Viam Jewels | Exquisite Artificial Jewelry",
     template: "%s | Viam Jewels",
   },
-
   description:
-    "Discover Viam Jewels — premium anti-tarnish, traditional, and modern jewelry crafted for timeless elegance. Shop earrings, necklaces, rings, and statement pieces designed for everyday luxury.",
-
+    "Discover stunning, high-quality artificial jewelry. From elegant necklaces to statement earrings, elevate your style with Viam Jewels.",
   keywords: [
-    "Viam Jewels",
-    "anti tarnish jewelry",
-    "luxury jewelry India",
-    "designer jewelry",
-    "traditional jewelry",
-    "party wear jewelry",
-    "modern jewelry",
-    "gold jewelry",
+    "artificial jewelry",
     "fashion jewelry",
-    "earrings",
-    "necklaces",
-    "rings",
+    "bridal jewelry",
+    "imitation jewelry",
+    "Viam Jewels",
   ],
-
-  metadataBase: new URL("https://viamjewels.com"),
-
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "Viam Jewels — Elegant Anti-Tarnish & Designer Jewelry",
-    description:
-      "Premium anti-tarnish and designer jewelry crafted for timeless elegance.",
-    url: "https://viamjewels.com",
-    siteName: "Viam Jewels",
     type: "website",
+    locale: "en_IN", // Adjust locale if targeting a different primary market
+    url: baseUrl,
+    title: "Viam Jewels | Exquisite Artificial Jewelry",
+    description:
+      "Discover stunning, high-quality artificial jewelry tailored for every occasion.",
+    siteName: "Viam Jewels",
     images: [
       {
-        url: "/logo.webp",
+        url: "/hero1.webp", // Use your highest quality hero image
         width: 1200,
         height: 630,
-        alt: "Viam Jewels - Premium Anti Tarnish Jewelry",
+        alt: "Viam Jewels Collection",
       },
     ],
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "Viam Jewels — Elegant Anti-Tarnish & Designer Jewelry",
-    description:
-      "Premium anti-tarnish and designer jewelry crafted for timeless elegance.",
-    images: ["/logo.webp"],
+    title: "Viam Jewels",
+    description: "Discover stunning, high-quality artificial jewelry.",
+    images: ["/hero1.webp"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
@@ -77,8 +81,35 @@ export default async function RootLayout({
 }) {
   const config = await getCachedSiteConfig();
 
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "JewelryStore",
+    name: "Viam Jewels",
+    url: baseUrl,
+    logo: `${baseUrl}/logo.webp`,
+    description: "Exquisite artificial jewelry for every occasion.",
+    image: `${baseUrl}/hero1.webp`,
+    sameAs: ["https://instagram.com/viamjewels"],
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "IN",
+    },
+    icons: {
+      icon: "/favicon.ico",
+      shortcut: "/favicon.ico",
+    },
+  };
+
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+      </head>
       <body
         className={`${bodyFont.variable} ${headingFont.variable} antialiased`}
       >

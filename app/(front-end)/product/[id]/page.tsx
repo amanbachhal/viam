@@ -1,16 +1,17 @@
 import { getProductDetails } from "@/actions/store.actions";
-import ProductClient from "./product-client";
+import { Metadata } from "next";
 import Link from "next/link";
+import ProductClient from "./product-client";
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.viamjewels.com";
 
 export default async function ProductPage({
   params,
 }: {
-  params: Promise<{ id: string }>; // 1. Type params as a Promise
+  params: Promise<{ id: string }>;
 }) {
-  // 2. Await the params to unwrap the ID
   const { id } = await params;
 
-  // 3. Use the unwrapped ID
   const res = await getProductDetails(id);
 
   if (!res.success || !res.data) {
@@ -29,7 +30,102 @@ export default async function ProductPage({
     );
   }
 
+  const { product, related } = res.data;
+
+  const firstVariant = product.variants?.[0];
+  const image = firstVariant?.images?.[0];
+  const price =
+    firstVariant?.discountedPrice || firstVariant?.price || undefined;
+
+  const inStock = product.variants?.some((v: any) => v.in_stock);
+
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    image: image,
+    description: product.description,
+    sku: product.code,
+    brand: {
+      "@type": "Brand",
+      name: "Viam Jewels",
+    },
+    offers: {
+      "@type": "Offer",
+      url: `${baseUrl}/product/${id}`,
+      priceCurrency: "INR",
+      price: price,
+      availability: inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
+
   return (
-    <ProductClient product={res.data.product} related={res.data.related} />
+    <article>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productSchema),
+        }}
+      />
+
+      <ProductClient product={product} related={related} />
+    </article>
   );
+}
+
+/* ================= METADATA ================= */
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+
+  const res = await getProductDetails(id);
+
+  if (!res.success || !res.data) {
+    return { title: "Product Not Found" };
+  }
+
+  const product = res.data.product;
+
+  const firstVariant = product.variants?.[0];
+  const image = firstVariant?.images?.[0] || "/placeholder.webp";
+
+  return {
+    title: product.name,
+    description:
+      product.description ||
+      `Buy ${product.name} at Viam Jewels. Premium artificial jewelry.`,
+
+    alternates: {
+      canonical: `/product/${id}`,
+    },
+
+    openGraph: {
+      title: product.name,
+      description: product.description,
+      url: `${baseUrl}/product/${id}`,
+      type: "website",
+      images: [
+        {
+          url: image,
+          width: 800,
+          height: 800,
+          alt: product.name,
+        },
+      ],
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description: product.description,
+      images: [image],
+    },
+  };
 }
